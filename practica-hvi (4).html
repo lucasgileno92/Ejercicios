@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Práctica HVI — Radiales, Esperas e Inversiones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A1424; --panel:#101F38; --panel2:#0D2C54; --line:#22385C;
+  --text:#E8EEF7; --muted:#8FA3BF; --accent:#FF6B35; --cyan:#22B8C8;
+  --ok:#3FA860; --bad:#D05353; --paper:#F7F5EF; --ink:#1B2740;
+  --radius:14px;
+  font-size:16px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  background:var(--bg);
+  background-image:radial-gradient(1200px 600px at 80% -10%, #12294a55, transparent);
+  color:var(--text);
+  font-family:'B612', system-ui, sans-serif;
+  line-height:1.5;
+  min-height:100vh;
+}
+a{color:var(--cyan);}
+/* ---------- header ---------- */
+header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:16px 20px; border-bottom:1px solid var(--line);
+  flex-wrap:wrap;
+}
+.brand h1{
+  font-size:1.05rem; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
+}
+.brand h1 .dim{color:var(--accent);}
+.brand p{color:var(--muted); font-size:.8rem; letter-spacing:.03em;}
+.score{display:flex; gap:8px; align-items:center;}
+.chip{
+  font-family:'B612 Mono', monospace; font-size:.85rem;
+  border:1px solid var(--line); border-radius:999px; padding:4px 12px;
+  background:var(--panel);
+}
+.chip.ok{color:#7fd39a; border-color:#2c5a3d;}
+.chip.bad{color:#e59a9a; border-color:#5a2c2c;}
+.chip button{all:unset; cursor:pointer; color:var(--muted); font-size:.8rem;}
+.chip button:hover{color:var(--text);}
+/* ---------- layout ---------- */
+main{
+  display:grid; grid-template-columns:330px 1fr; gap:20px;
+  max-width:1180px; margin:0 auto; padding:20px;
+}
+@media (max-width:900px){ main{grid-template-columns:1fr; padding:14px;} }
+/* ---------- config ---------- */
+.config{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; align-self:start; position:sticky; top:14px;
+}
+@media (max-width:900px){ .config{position:static;} }
+.config h2{
+  font-size:.75rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);
+  margin-bottom:10px;
+}
+fieldset{border:none; margin:0 0 14px 0;}
+legend{
+  font-size:.85rem; font-weight:700; color:var(--cyan);
+  margin-bottom:6px; letter-spacing:.04em;
+}
+label.opt{
+  display:flex; align-items:center; gap:9px; padding:5px 4px;
+  font-size:.88rem; cursor:pointer; border-radius:8px; color:var(--text);
+}
+label.opt:hover{background:#16294a;}
+label.opt input{accent-color:var(--accent); width:16px; height:16px; flex:none;}
+label.opt .sub{color:var(--muted); font-size:.76rem; margin-left:auto; font-family:'B612 Mono',monospace;}
+.subgroup{margin-left:22px; border-left:1px dashed var(--line); padding-left:8px;}
+.inline-sel{display:flex; align-items:center; gap:8px; font-size:.85rem; padding:4px;}
+.inline-sel select{
+  background:var(--panel2); color:var(--text); border:1px solid var(--line);
+  border-radius:8px; padding:4px 8px; font-family:inherit; font-size:.85rem;
+}
+details.cfgbox summary{cursor:pointer; list-style:none;}
+details.cfgbox summary::-webkit-details-marker{display:none;}
+/* ---------- exercise column ---------- */
+.stage{display:flex; flex-direction:column; gap:16px; min-width:0;}
+.actions{display:flex; gap:10px; flex-wrap:wrap;}
+button.btn{
+  font-family:inherit; font-size:.95rem; font-weight:700; letter-spacing:.03em;
+  border:none; border-radius:10px; padding:12px 20px; cursor:pointer;
+  transition:transform .06s ease, filter .15s ease;
+}
+button.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--accent); color:#1b0d05;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-ghost{background:transparent; color:var(--text); border:1px solid var(--line);}
+.btn-ghost:hover{border-color:var(--cyan); color:var(--cyan);}
+.btn:disabled{opacity:.4; cursor:not-allowed;}
+/* clearance strip — signature element */
+.clearance{
+  background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--accent);
+  border-radius:var(--radius); padding:14px 16px;
+}
+.clearance .tag{
+  font-family:'B612 Mono',monospace; font-size:.7rem; letter-spacing:.22em;
+  color:var(--accent); text-transform:uppercase; margin-bottom:8px;
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+}
+.clearance .tag .kind{color:var(--muted); letter-spacing:.08em;}
+.clearance .msg{
+  font-family:'B612 Mono',monospace; font-size:.95rem; line-height:1.65;
+}
+.clearance .msg b{color:var(--cyan); font-weight:700;}
+.clearance .task{
+  margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+  color:var(--muted); font-size:.84rem;
+}
+.clearance .task strong{color:var(--text);}
+/* solution */
+.solution{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; display:none;
+}
+.solution.show{display:block; animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion: reduce){ .solution.show{animation:none;} }
+.solution h3{
+  font-size:.75rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ok);
+  margin-bottom:10px;
+}
+.answer{
+  font-size:1.05rem; font-weight:700; color:var(--text);
+  background:#132a1e; border:1px solid #2c5a3d; border-radius:10px;
+  padding:10px 14px; margin-bottom:12px;
+}
+.answer .mono{font-family:'B612 Mono',monospace;}
+ol.steps{margin:0 0 12px 20px; font-size:.9rem; color:#cfd9e8;}
+ol.steps li{margin-bottom:7px;}
+ol.steps b{color:var(--text); font-family:'B612 Mono',monospace; font-weight:700;}
+ol.steps .hd{color:var(--cyan); font-family:'B612 Mono',monospace; font-weight:700;}
+.note{
+  font-size:.78rem; color:var(--muted); border-top:1px dashed var(--line);
+  padding-top:10px; margin-top:4px;
+}
+.verdict{display:flex; gap:10px; margin-top:12px;}
+.verdict button{flex:1;}
+.btn-ok{background:#1d3b2a; color:#8fdca8; border:1px solid #2c5a3d;}
+.btn-bad{background:#3b1d1d; color:#e5a0a0; border:1px solid #5a2c2c;}
+/* plate */
+.plate-wrap{
+  background:var(--paper); border-radius:var(--radius); padding:10px;
+  border:1px solid #d9d4c7;
+}
+.plate-wrap svg{display:block; width:100%; height:auto;}
+.plate-title{
+  font-family:'B612 Mono',monospace; font-size:.7rem; letter-spacing:.18em;
+  color:#6b6f7a; text-transform:uppercase; padding:2px 6px 8px;
+}
+.empty{
+  color:var(--muted); font-size:.9rem; border:1px dashed var(--line);
+  border-radius:var(--radius); padding:26px; text-align:center;
+}
+footer{max-width:1180px; margin:0 auto; padding:8px 20px 28px; color:var(--muted); font-size:.75rem;}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+
+/* mode toggle */
+.modeToggle{display:flex; gap:6px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:4px; margin-bottom:14px;}
+.modeToggle button{
+  flex:1; border:none; background:transparent; color:var(--muted); cursor:pointer;
+  font-family:inherit; font-size:.82rem; font-weight:700; letter-spacing:.02em;
+  padding:8px 6px; border-radius:7px; transition:all .15s ease;
+}
+.modeToggle button.active{background:var(--accent); color:#1b0d05;}
+.modeToggle button:not(.active):hover{color:var(--text);}
+.modeHint{font-size:.75rem; color:var(--muted); margin:-6px 0 14px; line-height:1.4;}
+
+/* session panel */
+.seqList{display:flex; flex-direction:column; gap:2px;}
+.seqrow{display:flex; align-items:center; gap:9px; font-size:.84rem; padding:5px 6px; border-radius:7px; color:var(--muted);}
+.seqrow .seqn{
+  width:20px; height:20px; flex:none; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:'B612 Mono',monospace; font-size:.7rem; border:1px solid var(--line); color:var(--muted);
+}
+.seqrow.done{color:#7fd39a;} .seqrow.done .seqn{border-color:#2c5a3d; color:#7fd39a;}
+.seqrow.now{color:var(--text); background:#16294a;} .seqrow.now .seqn{background:var(--accent); color:#1b0d05; border-color:var(--accent);}
+.seqrow.todo .seqn{opacity:.7;}
+
+/* heading readout */
+.hdgbar{
+  display:flex; align-items:center; gap:22px; background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius); padding:10px 16px; flex-wrap:wrap;
+}
+.hdgbar .hb{display:flex; flex-direction:column; gap:1px;}
+.hdgbar .lab{font-size:.64rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);}
+.hdgbar .val{font-family:'B612 Mono',monospace; font-size:1.4rem; font-weight:700; color:var(--cyan); line-height:1.1;}
+.hdgbar .hint{font-size:.72rem; color:var(--muted); margin-left:auto; text-align:right; max-width:230px; line-height:1.35;}
+.hdgpill{
+  font-family:'B612 Mono',monospace; font-size:.66rem; letter-spacing:.05em; color:#1b0d05;
+  background:var(--cyan); border-radius:999px; padding:2px 9px; margin-left:auto;
+}
+
+/* bloque inicial */
+.blkcfg{margin-bottom:14px;}
+.blkcfg .fldrow{display:flex; gap:10px;}
+.fld{display:flex; flex-direction:column; gap:5px; flex:1;}
+.fld > span:first-child{font-size:.72rem; color:var(--muted); letter-spacing:.02em;}
+.fld .inp{display:flex; align-items:center; gap:6px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:4px 9px;}
+.fld .inp em{font-style:normal; font-family:'B612 Mono',monospace; font-size:.74rem; color:var(--muted);}
+.fld input{
+  width:100%; min-width:0; background:transparent; border:none; color:var(--text);
+  font-family:'B612 Mono',monospace; font-size:1.05rem; font-weight:700; padding:2px 0; text-align:center;
+}
+.fld input:focus{outline:none;}
+.fld input::-webkit-outer-spin-button,.fld input::-webkit-inner-spin-button{opacity:.4;}
+.clearance.done{border-left-color:var(--ok);}
+.clearance.done .tag{color:var(--ok);}
+
+/* endinfo */
+.endinfo{
+  font-size:.85rem; color:#cbe6ea; background:#0f2a30; border:1px solid #1c4d55;
+  border-radius:9px; padding:9px 12px; margin-top:2px;
+}
+.endinfo b{color:#7fe3ef; font-family:'B612 Mono',monospace;}
+
+/* history */
+.history{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-top:4px;
+}
+.history summary{
+  cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.history summary::-webkit-details-marker{display:none;}
+.history summary h3{font-size:.75rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted);}
+.history summary::before{content:"▸"; color:var(--muted); font-size:.8rem; transition:transform .15s ease;}
+.history[open] summary::before{transform:rotate(90deg);}
+.history .htot{font-size:.78rem; color:var(--muted); margin-left:auto;}
+.htot .hOk{color:#7fd39a;} .htot .hBad{color:#e59a9a;} .htot .hmem{color:var(--accent);}
+#histClear{all:unset; cursor:pointer; font-size:.74rem; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:3px 10px;}
+#histClear:hover{color:#e59a9a; border-color:#5a2c2c;}
+.histList{margin-top:12px; display:flex; flex-direction:column; gap:2px; max-height:340px; overflow:auto;}
+.hrow{display:grid; grid-template-columns:26px 92px 1fr auto 20px; align-items:center; gap:8px; font-size:.8rem; padding:5px 4px; border-bottom:1px solid #16263f;}
+.hrow .hn{font-family:'B612 Mono',monospace; color:var(--muted); font-size:.72rem;}
+.hrow .hk{font-family:'B612 Mono',monospace; font-size:.62rem; letter-spacing:.06em; padding:2px 5px; border-radius:5px; text-align:center;}
+.hrow .hk.kr{background:#132a4a; color:#7fb0e5;} .hrow .hk.ke{background:#0f2a30; color:#7fe3ef;}
+.hrow .hk.ki{background:#2a1f3b; color:#c3a6e8;} .hrow .hk.ka{background:#2a2413; color:#e0c96a;}
+.hrow .ht{color:#cfd9e8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.hrow .hh{font-family:'B612 Mono',monospace; font-size:.72rem; color:var(--muted); white-space:nowrap;}
+.hrow .hh .hp{color:#8a95a8; margin-left:4px;}
+.hOk{color:#7fd39a;} .hBad{color:#e59a9a;} .hSkip{color:#6b7890;}
+.hmore{font-size:.74rem; color:var(--muted); text-align:center; padding:8px;}
+@media (max-width:520px){ .hrow{grid-template-columns:22px 1fr auto 18px;} .hrow .hk{display:none;} }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Práctica <span class="dim">HVI</span></h1>
+    <p>Radiales · Esperas · Inversiones de curso · Arcos DME — CPL/HVI (ANAC)</p>
+  </div>
+  <div class="score">
+    <span class="chip ok">✔ <span id="scOk">0</span></span>
+    <span class="chip bad">✘ <span id="scBad">0</span></span>
+    <span class="chip"><button id="scReset" title="Reiniciar contador">reset</button></span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ CONFIG ============ -->
+  <aside class="config">
+    <div class="modeToggle">
+      <button id="mode_sesion">Modo sesión</button>
+      <button id="mode_libre">Modo libre</button>
+    </div>
+
+    <fieldset class="blkcfg">
+      <legend>Bloqueo inicial</legend>
+      <div class="fldrow">
+        <label class="fld"><span>Nivel</span><span class="inp"><em>FL</em><input type="number" id="cfgFL" value="100" min="60" max="180" step="10" inputmode="numeric"></span></label>
+        <label class="fld"><span>Velocidad</span><span class="inp"><input type="number" id="cfgSpd" value="210" min="150" max="280" step="10" inputmode="numeric"><em>kt</em></span></label>
+      </div>
+      <p class="modeHint" style="margin:8px 0 0">Con qué nivel y velocidad bloqueás el VOR al arrancar. Después cada ejercicio te va pidiendo cambios.</p>
+    </fieldset>
+
+    <div id="cfgSesion">
+      <h2>Sesión encadenada</h2>
+      <p class="modeHint">Un ejercicio de cada tipo, en orden. El rumbo con el que terminás uno es el rumbo con el que arranca el siguiente — como un vuelo real.</p>
+      <div class="seqList" id="seqList"></div>
+    </div>
+
+    <div id="cfgLibre" style="display:none">
+    <h2>Tipos de ejercicio</h2>
+    <p class="modeHint">Elegí qué practicar. Igual se encadena el rumbo entre ejercicios.</p>
+
+    <fieldset>
+      <legend>Trabajo con radiales (VOR)</legend>
+      <label class="opt"><input type="checkbox" id="c_ing_menor" checked> Ingreso · ruta directa <span class="sub">&lt;90°</span></label>
+      <label class="opt"><input type="checkbox" id="c_ing_mayor" checked> Ingreso · ruta pasada <span class="sub">&gt;90°</span></label>
+      <label class="opt"><input type="checkbox" id="c_sal_menor" checked> Salida · ruta directa <span class="sub">&lt;90°</span></label>
+      <label class="opt"><input type="checkbox" id="c_sal_mayor" checked> Salida · ruta pasada <span class="sub">&gt;90°</span></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Incorporación a esperas</legend>
+      <label class="opt"><input type="checkbox" id="c_espera" checked> Esperas (tipo de entrada)</label>
+      <div class="subgroup">
+        <label class="opt"><input type="checkbox" id="c_e_directa" checked> Entrada directa</label>
+        <label class="opt"><input type="checkbox" id="c_e_paralela" checked> Entrada paralela</label>
+        <label class="opt"><input type="checkbox" id="c_e_gota" checked> Entrada en gota</label>
+        <label class="opt"><input type="checkbox" id="c_e_der" checked> Virajes por derecha <span class="sub">std</span></label>
+        <label class="opt"><input type="checkbox" id="c_e_izq" checked> Virajes por izquierda</label>
+        <label class="opt"><input type="checkbox" id="c_e_fmt_radial" checked> Expresar como radial</label>
+        <label class="opt"><input type="checkbox" id="c_e_fmt_curso" checked> Expresar como curso inbound</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Inversiones de curso</legend>
+      <label class="opt"><input type="checkbox" id="c_inv_4518" checked> Viraje reglamentario 45/180 <span class="sub">OACI</span></label>
+      <label class="opt"><input type="checkbox" id="c_inv_9027" checked> Inversión 90/270</label>
+      <label class="opt"><input type="checkbox" id="c_inv_gota" checked> Gota de agua (viraje de base)</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Otros</legend>
+      <label class="opt"><input type="checkbox" id="c_arco"> Interceptación de arco DME</label>
+    </fieldset>
+    </div><!-- /cfgLibre -->
+  </aside>
+
+  <!-- ============ STAGE ============ -->
+  <section class="stage">
+    <div class="hdgbar">
+      <div class="hb"><span class="lab">Rumbo</span><span class="val" id="hdgNow">—</span></div>
+      <div class="hb"><span class="lab">Nivel</span><span class="val" id="flNow">—</span></div>
+      <div class="hb"><span class="lab">Velocidad</span><span class="val" id="spdNow">—</span></div>
+      <span class="hint">Poné estos valores en el simulador al bloquear el VOR, antes de cada ejercicio.</span>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="btnNew">Empezar sesión</button>
+      <button class="btn btn-ghost" id="btnReveal" disabled>Revelar solución</button>
+    </div>
+
+    <div id="exArea">
+      <div class="empty">Elegí los tipos de ejercicio y presioná <b>Nuevo ejercicio</b>.<br>
+      Resolvelo mentalmente (o dibujándolo) y después revelá la solución.</div>
+    </div>
+
+    <div class="solution" id="solBox">
+      <h3>Solución</h3>
+      <div id="solContent"></div>
+      <div class="plate-wrap" id="plateWrap" style="display:none">
+        <div class="plate-title" id="plateTitle">Visualización</div>
+        <div id="plateSvg"></div>
+      </div>
+      <p class="note">Referencias: interceptaciones con reglas <b>DC-30</b> (acercamiento) y <b>CD-45</b> (alejamiento) y
+      «ruta pasada» para diferencias &gt;90°; esperas e inversiones según OACI Doc 8168. Los ángulos, tiempos y divergencias
+      pueden variar según la carta o la técnica de tu instructor.</p>
+      <div class="verdict">
+        <button class="btn btn-ok" id="btnOk">✔ La acerté</button>
+        <button class="btn btn-bad" id="btnBad">✘ La erré</button>
+      </div>
+    </div>
+
+    <details class="history" id="histBox">
+      <summary>
+        <h3>Historial</h3>
+        <span class="htot" id="histTotals">Sin ejercicios todavía.</span>
+        <button id="histClear" title="Borrar historial">Borrar</button>
+      </summary>
+      <div class="histList" id="histList"></div>
+    </details>
+  </section>
+</main>
+
+<footer>Herramienta de estudio — no usar para operación real. Rumbos magnéticos, viento calmo.</footer>
+
+<script>
+
+
+"use strict";
+/* ================= utilidades ================= */
+const $ = id => document.getElementById(id);
+const norm = x => ((x % 360) + 360) % 360;
+const d180 = (a,b) => ((a - b + 540) % 360) - 180;          // a-b normalizado a (-180,180]
+const rnd = n => Math.floor(Math.random()*n);
+const pick = arr => arr[rnd(arr.length)];
+const r5 = () => 5 * rnd(72);                                // 0..355 (múltiplos de 5)
+const fmtH = h => { const v = Math.round(norm(h)); return String(v===0?360:v).padStart(3,"0") + "°"; };
+const fmtR = h => "R-" + String(Math.round(norm(h))===0?360:Math.round(norm(h))).padStart(3,"0");
+function turnTo(from,to){
+  const d = d180(to,from);
+  return { dir: d >= 0 ? "derecha" : "izquierda", deg: Math.round(Math.abs(d)) };
+}
+const FIXES = ["VOR EZE","VOR ROS","VOR CBA","VOR DOZ","VOR SIS","VOR MDP","VOR NEU","VOR SLA"];
+const CALLS = ["LV-ABC","LV-GQT","LV-CDX","LV-FVE","LV-JMB"];
+
+/* ================= geometría SVG ================= */
+const W = 560, H = 560, CX = 280, CY = 280;
+const rad = d => d * Math.PI/180;
+const pol = (az, r, cx=CX, cy=CY) => [cx + r*Math.sin(rad(az)), cy - r*Math.cos(rad(az))];
+
+// simulación simple de trayectoria: segmentos rectos y virajes
+function fly(x, y, hdg, segs, turnR=26){
+  const pts = [[x,y]];
+  for(const s of segs){
+    if(s.str !== undefined){
+      const L = Math.max(0, s.str);
+      x += L*Math.sin(rad(hdg)); y -= L*Math.cos(rad(hdg));
+      pts.push([x,y]);
+    } else if(s.turn !== undefined){
+      const total = Math.abs(s.turn), sg = Math.sign(s.turn);
+      const r = s.r || turnR, step = 6;
+      const chord = 2*r*Math.sin(rad(step/2));
+      for(let t=0; t<total; t+=step){
+        const dd = Math.min(step, total-t);
+        const ch = 2*r*Math.sin(rad(dd/2));
+        const mid = hdg + sg*dd/2;
+        x += ch*Math.sin(rad(mid)); y -= ch*Math.cos(rad(mid));
+        hdg = norm(hdg + sg*dd);
+        pts.push([x,y]);
+      }
+    }
+  }
+  return { pts, x, y, hdg };
+}
+const poly = pts => pts.map(p => p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+
+// intersección: recta desde P con rumbo h vs. semirrecta (radial az) desde O → distancia t sobre la recta
+function hitRay(px, py, h, az, ox=CX, oy=CY){
+  const vx = Math.sin(rad(h)), vy = -Math.cos(rad(h));
+  const ux = Math.sin(rad(az)), uy = -Math.cos(rad(az));
+  const det = vx*(-uy) - vy*(-ux);
+  if (Math.abs(det) < 1e-6) return null;
+  const bx = ox - px, by = oy - py;
+  const t = (bx*(-uy) - by*(-ux)) / det;
+  const s = (vx*by - vy*bx) / det;
+  return (t > 0 && s > 0) ? t : null;
+}
+
+function svgOpen(){
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#FF6B35"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#98A2B5"/>
+    </marker>
+  </defs>`;
+}
+function rose(){
+  let s = `<circle cx="${CX}" cy="${CY}" r="235" fill="none" stroke="#D8D2C2" stroke-width="1.4"/>`;
+  for(let a=0; a<360; a+=10){
+    const big = a % 30 === 0;
+    const [x1,y1] = pol(a, big?222:228), [x2,y2] = pol(a,235);
+    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#B9B29E" stroke-width="${big?1.6:1}"/>`;
+    if(a % 90 === 0){
+      const [tx,ty] = pol(a, 208);
+      const lbl = a===0?"36":String(a/10).padStart(2,"0");
+      s += `<text x="${tx}" y="${ty}" font-size="13" fill="#8A8468" text-anchor="middle" dominant-baseline="middle" font-family="B612 Mono,monospace">${lbl}</text>`;
+    }
+  }
+  return s;
+}
+function station(x=CX,y=CY,name=""){
+  const pts=[]; for(let i=0;i<6;i++){ pts.push(pol(30+60*i,11,x,y).map(v=>v.toFixed(1)).join(",")); }
+  let s = `<polygon points="${pts.join(" ")}" fill="none" stroke="#1B2740" stroke-width="2"/>
+           <circle cx="${x}" cy="${y}" r="2.6" fill="#1B2740"/>`;
+  if(name) s += `<text x="${x}" y="${y+30}" font-size="13" font-weight="bold" fill="#1B2740" text-anchor="middle" font-family="B612 Mono,monospace">${name}</text>`;
+  return s;
+}
+function radialLine(az, label, opts={}){
+  const r1 = opts.r1 ?? 14, r2 = opts.r2 ?? 200;
+  const [x1,y1]=pol(az,r1), [x2,y2]=pol(az,r2);
+  let s = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${opts.color||"#98A2B5"}" stroke-width="1.6" stroke-dasharray="${opts.solid?"none":"6 5"}" ${opts.arrow?'marker-end="url(#arrg)"':''}/>`;
+  if(label){
+    const [tx,ty]=pol(az, r2+18);
+    s += `<text x="${tx}" y="${ty}" font-size="12.5" fill="${opts.color||"#5C6B84"}" text-anchor="middle" dominant-baseline="middle" font-family="B612 Mono,monospace" font-weight="bold">${label}</text>`;
+  }
+  return s;
+}
+function plane(x,y,hdg,color="#FF6B35"){
+  return `<g transform="translate(${x},${y}) rotate(${hdg})">
+    <path d="M0,-11 L7,9 L0,4.5 L-7,9 Z" fill="${color}" stroke="#7a2f12" stroke-width="0.8"/>
+  </g>`;
+}
+function pathLine(pts, opts={}){
+  return `<polyline points="${poly(pts)}" fill="none" stroke="${opts.color||"#FF6B35"}"
+    stroke-width="${opts.w||2.6}" stroke-linejoin="round" stroke-linecap="round"
+    ${opts.dash?`stroke-dasharray="${opts.dash}"`:""} ${opts.arrow!==false?'marker-end="url(#arr)"':''}/>`;
+}
+function textAt(x,y,txt,opts={}){
+  return `<text x="${x}" y="${y}" font-size="${opts.size||12.5}" fill="${opts.color||"#1B2740"}"
+    text-anchor="${opts.anchor||"middle"}" dominant-baseline="middle"
+    font-family="B612 Mono,monospace" ${opts.bold?'font-weight="bold"':''}>${txt}</text>`;
+}
+
+
+
+/* ================= generadores (bloqueo de VOR + performance encadenada) ================= */
+let current = null;
+
+function fixName(exclude){
+  let f; do { f = pick(FIXES); } while(exclude && f === exclude && FIXES.length > 1);
+  return f;
+}
+function flPad(fl){ return String(fl).padStart(3,"0"); }
+const FLMIN = 60, FLMAX = 180;
+let lastVert = null;
+function pickVertical(curFL){
+  const canUp = curFL + 10 <= FLMAX, canDn = curFL - 10 >= FLMIN;
+  const pool = [];
+  if(canUp){ const w = lastVert==="climb"?1:3; for(let i=0;i<w;i++) pool.push("climb"); }
+  if(canDn){ const w = lastVert==="descend"?1:3; for(let i=0;i<w;i++) pool.push("descend"); }
+  pool.push("maintain"); if(lastVert!=="maintain") pool.push("maintain");
+  const mode = pick(pool); lastVert = mode;
+  if(mode === "maintain") return { mode, chg:0, newFL:curFL };
+  const dir = mode==="climb"?1:-1;
+  const fits = [10,20,30].filter(c => { const nf = curFL + dir*c; return nf>=FLMIN && nf<=FLMAX; });
+  const chg = fits.length ? pick(fits) : 10;
+  return { mode, chg, newFL: curFL + dir*chg };
+}
+function pickRate(spd, mode){
+  const pal = spd<=200 ? [500,600,700,800] : spd<=230 ? [700,800,900,1000] : [900,1000,1200,1500];
+  return pick(pal);
+}
+function atcPerf(st){
+  const v = pickVertical(st.fl);
+  const spd = 180 + 10*rnd(8);                       // 180..250, múltiplos de 10
+  const rate = v.mode==="maintain" ? 0 : pickRate(spd, v.mode);
+  const spdTxt = spd>st.spd ? `acelere a <b>${spd} kt</b>` : spd<st.spd ? `reduzca a <b>${spd} kt</b>` : `mantenga <b>${spd} kt</b>`;
+  const vTxt = v.mode==="maintain"
+    ? `mantenga <b>FL${flPad(st.fl)}</b>`
+    : `${v.mode==="climb"?"ascienda":"descienda"} a <b>FL${flPad(v.newFL)}</b> a <b>${rate} ft/min</b>`;
+  const shortV = v.mode==="maintain" ? `FL${flPad(st.fl)}` : `FL${flPad(st.fl)}→${flPad(v.newFL)}`;
+  return { spd, newFL:v.newFL, mode:v.mode, rate, spdTxt, vTxt, shortV };
+}
+function blockOpen(st){
+  return `Bloqueás el <b>${st.fix}</b> en rumbo <b>${fmtH(st.hdg)}</b> — <b>FL${flPad(st.fl)}</b>, <b>${st.spd} kt</b>.`;
+}
+const perfTask = `Cumplí también la <strong>velocidad</strong> y el <strong>nivel</strong> asignados.`;
+
+/* ---- ingreso por radial (acercamiento) ---- */
+function genIngreso(st, mayor){
+  const fix = st.fix, cs = pick(CALLS);
+  const Rnow = st.hdg;
+  const delta = mayor ? 100 + 5*rnd(13) : 20 + 5*rnd(13);
+  const s = pick([1,-1]);
+  const Rt = norm(Rnow + s*delta);
+  const Cin = norm(Rt + 180);
+  const C = norm(Rnow + 180);
+  const p = atcPerf(st);
+  const instr = `${blockOpen(st)} Salís en alejamiento por el <b>${fmtR(Rnow)}</b>.<br>ATC: «${cs}, intercepte el <b>radial ${fmtR(Rt).slice(2)}</b> e ingrese a la estación, ${p.spdTxt}, ${p.vTxt}».`;
+  const task = `Determiná: <strong>curso deseado</strong>, <strong>ruta directa o pasada</strong>, <strong>rumbo de interceptación</strong> y <strong>lado de cada viraje</strong>. ${perfTask}`;
+
+  let sol, svg;
+  if(!mayor){
+    const sg = Math.sign(d180(C, Cin));
+    const hInt = norm(C + sg*30);
+    const t = turnTo(Rnow, hInt);
+    sol = {
+      answer: `Ruta directa (DC-30): viraje por <span class="mono">${t.dir}</span> al rumbo <span class="mono">${fmtH(hInt)}</span> → interceptar y establecerse en curso <span class="mono">${fmtH(Cin)}</span>`,
+      steps: [
+        `Deseada = curso de acercamiento = recíproco del ${fmtR(Rt)} = <b>${fmtH(Cin)}</b>.`,
+        `Cabeza (QDM actual) = <b>${fmtH(C)}</b>. Diferencia cabeza–deseada = <b>${delta}°</b> &lt; 90° → <b>ruta directa</b>.`,
+        `Regla <b>DC-30</b> (Deseada → Cabeza → 30°): rumbo de interceptación = ${fmtH(C)} ${sg>0?"+":"−"} 30° = <b>${fmtH(hInt)}</b>.`,
+        `Virá por <span class="hd">${t.dir}</span> (${t.deg}°) al rumbo <b>${fmtH(hInt)}</b>.`,
+        `Cuando la aguja se acerque a la deseada, virá e interceptá el curso <b>${fmtH(Cin)}</b> hacia la estación.`
+      ]
+    };
+    svg = drawIngresoDirecta({Rnow, Rt, Cin, hInt, fix});
+  } else {
+    const h1 = Rt;
+    const sLine = Math.sign(d180(Rnow, Rt));
+    const h2 = norm(h1 - sLine*90);
+    const t1 = turnTo(Rnow, h1);
+    const t2dir = sLine > 0 ? "izquierda" : "derecha";
+    sol = {
+      answer: `Ruta pasada: rumbo radial <span class="mono">${fmtH(h1)}</span> → abeam estación + 1 min → 90° por ${t2dir} al rumbo <span class="mono">${fmtH(h2)}</span> → interceptar curso <span class="mono">${fmtH(Cin)}</span>`,
+      steps: [
+        `Deseada = <b>${fmtH(Cin)}</b> (recíproco del ${fmtR(Rt)}). Cabeza actual = <b>${fmtH(C)}</b>. Diferencia = <b>${delta}°</b> &gt; 90° → <b>ruta pasada</b>: no hay interceptación directa; hay que pasar la estación.`,
+        `Virá por <span class="hd">${t1.dir}</span> (${t1.deg}°) al <b>rumbo radial ${fmtH(h1)}</b> (rumbo igual al número del radial deseado).`,
+        `Al quedar <b>abeam la estación</b> (cambio de bandera TO/FROM), cronometrá <b>1 minuto</b>.`,
+        `Cumplido el minuto, virá <b>90° hacia la estación</b>: por <span class="hd">${t2dir}</span> al rumbo <b>${fmtH(h2)}</b>.`,
+        `Interceptación «a cuchillo»: la aguja centra rápido — anticipá y establecete en curso <b>${fmtH(Cin)}</b>, sin exceder ~30° de banco.`
+      ]
+    };
+    svg = drawIngresoPasada({Rnow, Rt, Cin, h1, h2, sLine, fix});
+  }
+  const ex = { kind:"RADIALES", title:`Ingreso por radial · ${mayor?"ruta pasada (>90°)":"ruta directa (<90°)"}`,
+    instr, task, sol, svg, plateTitle:`${fix} — ingreso ${fmtR(Rt)}`,
+    hdgIn:Rnow, hdgOut:Cin, flIn:st.fl, spdIn:st.spd, flOut:p.newFL, spdOut:p.spd, perf:p.shortV,
+    endTxt:`en rumbo ${fmtH(Cin)}, sobre la estación (${fix}) — FL${flPad(p.newFL)}, ${p.spd} kt` };
+  return { ex, next:{ hdg:Cin, fl:p.newFL, spd:p.spd, fix } };
+}
+
+/* ---- salida por radial (alejamiento) ---- */
+function genSalida(st, mayor){
+  const fix = st.fix, cs = pick(CALLS);
+  const Rnow = st.hdg;
+  const delta = mayor ? 100 + 5*rnd(13) : 20 + 5*rnd(13);
+  const s = pick([1,-1]);
+  const Rt = norm(Rnow + s*delta);
+  const p = atcPerf(st);
+  const instr = `${blockOpen(st)}<br>ATC: «${cs}, aléjese por el <b>radial ${fmtR(Rt).slice(2)}</b>, ${p.spdTxt}, ${p.vTxt}».`;
+  const task = `Determiná: <strong>ruta directa o pasada</strong>, <strong>rumbo de interceptación</strong> y <strong>lado de cada viraje</strong>. ${perfTask}`;
+
+  let sol, svg;
+  if(!mayor){
+    const sg = Math.sign(d180(Rt, Rnow));
+    const hInt = norm(Rt + sg*45);
+    const t = turnTo(Rnow, hInt);
+    sol = {
+      answer: `Ruta directa (CD-45): viraje por <span class="mono">${t.dir}</span> al rumbo <span class="mono">${fmtH(hInt)}</span> → interceptar y alejarse por <span class="mono">${fmtR(Rt)}</span>`,
+      steps: [
+        `Deseada = QDR <b>${fmtH(Rt)}</b> (en alejamiento el curso coincide con el número del radial).`,
+        `Cola (QDR actual) = <b>${fmtH(Rnow)}</b>. Diferencia cola–deseada = <b>${delta}°</b> &lt; 90° → <b>ruta directa</b>.`,
+        `Regla <b>CD-45</b> (Cola → Deseada → 45°): rumbo de interceptación = ${fmtH(Rt)} ${sg>0?"+":"−"} 45° = <b>${fmtH(hInt)}</b>.`,
+        `Virá por <span class="hd">${t.dir}</span> (${t.deg}°) al rumbo <b>${fmtH(hInt)}</b>.`,
+        `Cuando la aguja se acerque al ${fmtR(Rt)}, virá al rumbo <b>${fmtH(Rt)}</b> y mantené el QDR alejándote.`
+      ]
+    };
+    svg = drawSalidaDirecta({Rnow, Rt, hInt, fix});
+  } else {
+    const h1 = Rt;
+    const sLine = Math.sign(d180(Rnow, Rt));
+    const h2 = norm(h1 - sLine*45);
+    const t1 = turnTo(Rnow, h1);
+    const t2dir = sLine > 0 ? "izquierda" : "derecha";
+    sol = {
+      answer: `Ruta pasada: rumbo radial <span class="mono">${fmtH(h1)}</span> → abeam estación → 45° por ${t2dir} al rumbo <span class="mono">${fmtH(h2)}</span> → interceptar y salir por <span class="mono">${fmtR(Rt)}</span>`,
+      steps: [
+        `Deseada = QDR <b>${fmtH(Rt)}</b>. Cola actual = <b>${fmtH(Rnow)}</b>. Diferencia = <b>${delta}°</b> &gt; 90° → <b>ruta pasada</b>.`,
+        `Virá por <span class="hd">${t1.dir}</span> (${t1.deg}°) al <b>rumbo radial ${fmtH(h1)}</b> (rumbo igual al número del radial deseado).`,
+        `Al quedar <b>abeam la estación</b> (cambio de bandera TO/FROM), virá <b>45° hacia la estación</b>: por <span class="hd">${t2dir}</span> al rumbo <b>${fmtH(h2)}</b>.`,
+        `En cuanto la deflexión empiece a moverse, interceptá y virá al rumbo <b>${fmtH(Rt)}</b>, manteniendo el QDR alejándote.`
+      ]
+    };
+    svg = drawSalidaPasada({Rnow, Rt, h1, h2, sLine, fix});
+  }
+  const ex = { kind:"RADIALES", title:`Salida por radial · ${mayor?"ruta pasada (>90°)":"ruta directa (<90°)"}`,
+    instr, task, sol, svg, plateTitle:`${fix} — salida ${fmtR(Rt)}`,
+    hdgIn:Rnow, hdgOut:Rt, flIn:st.fl, spdIn:st.spd, flOut:p.newFL, spdOut:p.spd, perf:p.shortV,
+    endTxt:`en rumbo ${fmtH(Rt)}, saliendo por el ${fmtR(Rt)} — FL${flPad(p.newFL)}, ${p.spd} kt` };
+  return { ex, next:{ hdg:Rt, fl:p.newFL, spd:p.spd, fix } };
+}
+
+/* ---- espera ---- */
+function holdEntry(Cin, right, Hin){
+  const a = right ? norm(Hin - Cin) : norm(Cin - Hin);
+  if(a >= 290 || a <= 110) return "directa";
+  if(a <= 180) return "gota";
+  return "paralela";
+}
+function genEspera(st){
+  const fix = st.fix, cs = pick(CALLS);
+  const Hin = st.hdg;
+  const allowE = []; if(cb("c_e_directa")) allowE.push("directa"); if(cb("c_e_paralela")) allowE.push("paralela"); if(cb("c_e_gota")) allowE.push("gota");
+  const allowT = []; if(cb("c_e_der")) allowT.push(true); if(cb("c_e_izq")) allowT.push(false);
+  const fmts = []; if(cb("c_e_fmt_radial")) fmts.push("radial"); if(cb("c_e_fmt_curso")) fmts.push("curso");
+  const E = allowE.length ? allowE : ["directa","paralela","gota"];
+  const T = allowT.length ? allowT : [true,false];
+  const F = fmts.length ? fmts : ["radial","curso"];
+
+  let Cin, right, entry, tries=0;
+  do{ Cin = r5(); right = pick(T); entry = holdEntry(Cin, right, Hin); tries++; }
+  while(!E.includes(entry) && tries < 400);
+  const Rhold = norm(Cin + 180);
+  const fmt = pick(F);
+  const desc = fmt === "radial"
+    ? `<b>${fmtR(Rhold)}</b> (curso de acercamiento ${fmtH(Cin)})`
+    : `curso de acercamiento <b>${fmtH(Cin)}</b> (${fmtR(Rhold)})`;
+  const p = atcPerf(st);
+  const instr = `${blockOpen(st)}<br>ATC: «${cs}, autorizado a esperar, ${desc}, virajes por <b>${right?"derecha (estándar)":"izquierda (no estándar)"}</b>, tramos de 1 minuto, ${p.spdTxt}, ${p.vTxt}».`;
+  const task = `Determiná el <strong>tipo de entrada</strong> (directa / paralela / gota) y cómo volarla. ${perfTask}`;
+
+  const secTxt = right
+    ? `Directa: ${fmtH(Cin-70)} → ${fmtH(Cin+110)} · Gota: ${fmtH(Cin+110)} → ${fmtH(Cin+180)} · Paralela: ${fmtH(Cin+180)} → ${fmtH(Cin-70)}`
+    : `Directa: ${fmtH(Cin-110)} → ${fmtH(Cin+70)} · Gota: ${fmtH(Cin+180)} → ${fmtH(Cin-110)} · Paralela: ${fmtH(Cin+70)} → ${fmtH(Cin+180)}`;
+  const Hout = norm(Cin + 180);
+  const tearH = right ? norm(Cin + 180 - 30) : norm(Cin + 180 + 30);
+  const proc = {
+    directa: `Al bloquear el fix, virá por <span class="hd">${right?"derecha":"izquierda"}</span> al alejamiento <b>${fmtH(Hout)}</b>, 1 min, y virá de nuevo para interceptar el curso <b>${fmtH(Cin)}</b>.`,
+    paralela: `Al bloquear, volá el alejamiento <b>${fmtH(Hout)}</b> paralelo al curso por el lado no protegido, 1 min; luego virá hacia adentro (&gt;180° por <span class="hd">${right?"izquierda":"derecha"}</span>) e interceptá el curso <b>${fmtH(Cin)}</b> hacia el fix.`,
+    gota: `Al bloquear, virá al rumbo <b>${fmtH(tearH)}</b> (30° hacia el lado protegido), 1 min; luego virá por <span class="hd">${right?"derecha":"izquierda"}</span> e interceptá el curso <b>${fmtH(Cin)}</b> hacia el fix.`
+  };
+  const sol = {
+    answer: `Entrada <span class="mono">${entry.toUpperCase()}</span>`,
+    steps: [
+      `Curso inbound = <b>${fmtH(Cin)}</b> (espera sobre el ${fmtR(Rhold)}).`,
+      `Sectores (virajes por ${right?"derecha":"izquierda"}): <b>${secTxt}</b>.`,
+      `Tu rumbo de bloqueo <b>${fmtH(Hin)}</b> cae en el sector de entrada <b>${entry}</b>.`,
+      proc[entry],
+      `Dentro de la espera: tramos de 1 min (corregí por viento) y virajes clase 1 (3°/s).`
+    ]
+  };
+  const svg = drawHold({Cin, right, Hin, entry, fix});
+  const ex = { kind:"ESPERA", title:`Incorporación a la espera`, instr, task, sol, svg,
+    plateTitle:`${fix} — espera ${fmtR(Rhold)} · virajes ${right?"der":"izq"}`,
+    hdgIn:Hin, hdgOut:Cin, flIn:st.fl, spdIn:st.spd, flOut:p.newFL, spdOut:p.spd, perf:p.shortV,
+    endTxt:`establecido en la espera, inbound en rumbo ${fmtH(Cin)} — FL${flPad(p.newFL)}, ${p.spd} kt` };
+  return { ex, next:{ hdg:Cin, fl:p.newFL, spd:p.spd, fix } };
+}
+
+/* ---- inversiones ---- */
+function genInversion(st, tipo){
+  const fix = st.fix;
+  const X = st.hdg;                 // tramo de alejamiento = rumbo de bloqueo
+  const Cin = norm(X + 180);
+  const right = pick([true,false]);
+  const L = right ? "derecha" : "izquierda";
+  const Lop = right ? "izquierda" : "derecha";
+  const sg = right ? 1 : -1;
+  const p = atcPerf(st);
+  const base = `${blockOpen(st)} Te alejás con rumbo <b>${fmtH(X)}</b> (1 min desde el bloqueo).`;
+  const task = `Determiná los <strong>rumbos de cada tramo</strong>, los <strong>sentidos de viraje</strong> y los <strong>tiempos</strong>. ${perfTask}`;
+  let title, instr, sol, svg;
+
+  if(tipo === "4518"){
+    const h1 = norm(X + sg*45);
+    title = "Inversión · viraje reglamentario 45/180 (OACI)";
+    instr = `${base}<br>ATC: «viraje reglamentario <b>45/180 por ${L}</b> para regresar en acercamiento <b>${fmtH(Cin)}</b>, ${p.spdTxt}, ${p.vTxt}».`;
+    sol = { answer:`${fmtH(X)} → viraje por ${L} a <span class="mono">${fmtH(h1)}</span> (1:00) → 180° por ${Lop} → interceptar <span class="mono">${fmtH(Cin)}</span>`,
+      steps:[ `Desde el alejamiento <b>${fmtH(X)}</b>, virá <b>45° por <span class="hd">${L}</span></b> al rumbo <b>${fmtH(h1)}</b>.`,
+        `Mantené <b>${fmtH(h1)}</b> durante <b>1:00</b> (CAT A/B; 1:15 C/D).`,
+        `Virá <b>180° por <span class="hd">${Lop}</span></b>: quedás en rumbo <b>${fmtH(norm(h1+180))}</b>.`,
+        `Interceptá el curso de acercamiento <b>${fmtH(Cin)}</b> hacia el fix.` ] };
+    svg = drawReversal({X, right, tipo:"4518", fix});
+  } else {
+    const h1 = norm(X + sg*90);
+    title = "Inversión 90/270";
+    instr = `${base}<br>ATC: «<b>inversión 90/270</b>, primer viraje por <b>${L}</b>, para quedar en acercamiento <b>${fmtH(Cin)}</b>, ${p.spdTxt}, ${p.vTxt}».`;
+    sol = { answer:`${fmtH(X)} → 90° por ${L} a <span class="mono">${fmtH(h1)}</span> → inmediato 270° por ${Lop} → <span class="mono">${fmtH(Cin)}</span>`,
+      steps:[ `Desde <b>${fmtH(X)}</b>, virá <b>90° por <span class="hd">${L}</span></b> al rumbo <b>${fmtH(h1)}</b>.`,
+        `Al completarlo, revertí <b>inmediatamente</b>: <b>270° por <span class="hd">${Lop}</span></b> (sin tramo recto).`,
+        `Salís en rumbo <b>${fmtH(Cin)}</b>, sobre el mismo curso en sentido contrario (acercamiento).` ] };
+    svg = drawReversal({X, right, tipo:"9027", fix});
+  }
+  const ex = { kind:"INVERSIÓN", title, instr, task, sol, svg, plateTitle:`${fix} — ${title.toLowerCase()}`,
+    hdgIn:X, hdgOut:Cin, flIn:st.fl, spdIn:st.spd, flOut:p.newFL, spdOut:p.spd, perf:p.shortV,
+    endTxt:`en rumbo ${fmtH(Cin)}, acercándote al ${fix} — FL${flPad(p.newFL)}, ${p.spd} kt` };
+  return { ex, next:{ hdg:Cin, fl:p.newFL, spd:p.spd, fix } };
+}
+
+/* ---- gota de agua ---- */
+function genGota(st){
+  const fix = st.fix;
+  const X = st.hdg;
+  const Cin = norm(X + 180);
+  const right = pick([true,false]);
+  const L = right ? "derecha" : "izquierda";
+  const Lop = right ? "izquierda" : "derecha";
+  const sg = right ? 1 : -1;
+  const off = 30;
+  const h1 = norm(X + sg*off);
+  const p = atcPerf(st);
+  const instr = `${blockOpen(st)}<br>ATC: «<b>gota de agua por ${L}</b> para regresar en acercamiento <b>${fmtH(Cin)}</b>, ${p.spdTxt}, ${p.vTxt}».`;
+  const task = `Determiná el <strong>rumbo del tramo de alejamiento</strong>, el <strong>sentido del viraje de base</strong> y los <strong>tiempos</strong>. ${perfTask}`;
+  const sol = {
+    answer:`Alejamiento <span class="mono">${fmtH(h1)}</span> (${off}° hacia la ${L}, 1:00) → viraje por ${Lop} hasta interceptar <span class="mono">${fmtH(Cin)}</span>`,
+    steps:[ `Cruzá el fix y divergí <b>${off}° hacia la ${L}</b> del rumbo de salida: alejamiento <b>${fmtH(h1)}</b>.`,
+      `Mantené <b>${fmtH(h1)}</b> durante <b>1:00</b> (típico CAT A/B; según carta puede ser 2 min con ~15–20° de divergencia).`,
+      `Virá por <span class="hd">${Lop}</span> con viraje clase 1 continuo (~${180+off}°) hasta interceptar el curso <b>${fmtH(Cin)}</b>.`,
+      `Establecete en <b>${fmtH(Cin)}</b> en acercamiento al fix.` ]
+  };
+  const svg = drawReversal({X:h1, right, tipo:"gota", fix, Cin});
+  const ex = { kind:"INVERSIÓN", title:"Inversión · gota de agua (viraje de base)", instr, task, sol, svg,
+    plateTitle:`${fix} — gota de agua`,
+    hdgIn:X, hdgOut:Cin, flIn:st.fl, spdIn:st.spd, flOut:p.newFL, spdOut:p.spd, perf:p.shortV,
+    endTxt:`en rumbo ${fmtH(Cin)}, acercándote al ${fix} — FL${flPad(p.newFL)}, ${p.spd} kt` };
+  return { ex, next:{ hdg:Cin, fl:p.newFL, spd:p.spd, fix } };
+}
+
+/* ---- arco DME ---- */
+function genArco(st){
+  const fix = st.fix.replace("VOR","VOR/DME"), cs = pick(CALLS);
+  const R0 = st.hdg;
+  const s = pick([1,-1]);
+  const delta = 60 + 5*rnd(13);
+  const R1 = norm(R0 + s*delta);
+  const dist = pick([10,12,15]);
+  const hArc = norm(R0 + s*90);
+  const t1 = turnTo(R0, hArc);
+  const leadR = norm(R1 - s*5);
+  const CinF = norm(R1 + 180);
+  const tSense = s>0 ? "sumando" : "restando";
+  const p = atcPerf(st);
+  const instr = `${blockOpen(st)} Salís en alejamiento por el <b>${fmtR(R0)}</b>.<br>ATC: «${cs}, intercepte el <b>arco DME de ${dist} NM</b>, recórralo hasta el <b>radial ${fmtR(R1).slice(2)}</b> e ingrese por ese radial, ${p.spdTxt}, ${p.vTxt}».`;
+  const task = `Determiná: <strong>anticipo de entrada al arco</strong>, <strong>lado y rumbo del viraje inicial</strong>, <strong>técnica sobre el arco</strong> y <strong>radial de anticipo de salida</strong>. ${perfTask}`;
+  const sol = {
+    answer:`A ${dist} NM: viraje por <span class="mono">${t1.dir}</span> al rumbo <span class="mono">${fmtH(hArc)}</span>; arco ${tSense} radiales; salida anticipando en <span class="mono">${fmtR(leadR)}</span> → curso <span class="mono">${fmtH(CinF)}</span>`,
+    steps:[ `Anticipá la entrada ~<b>0,5 NM antes</b> del arco (a 150 kt GS; más anticipo a más velocidad): al pasar DME ${(dist+0.5).toFixed(1)}.`,
+      `Virá <b>90° por <span class="hd">${t1.dir}</span></b> al rumbo <b>${fmtH(hArc)}</b> (perpendicular al radial, tangente al arco).`,
+      `«Twist &amp; turn»: cada ~10° de arco girá el OBS 10° (<b>${tSense}</b> radiales hacia el ${fmtR(R1)}) y corregí el rumbo ~10°, manteniendo DME ${dist} ± 0,5 (si crece, cerrá hacia la estación; si decrece, abrí).`,
+      `Anticipá la salida: a ${dist} NM alcanza con ~5°; al pasar el <b>${fmtR(leadR)}</b>, virá hacia el curso de ingreso.`,
+      `Establecete inbound en <b>${fmtH(CinF)}</b> por el ${fmtR(R1)} hacia la estación.` ]
+  };
+  const svg = drawArc({R0, R1, s, fix, dist});
+  const ex = { kind:"ARCO DME", title:`Interceptación de arco DME`, instr, task, sol, svg,
+    plateTitle:`${fix} — arco ${dist} DME · ${fmtR(R0)} → ${fmtR(R1)}`,
+    hdgIn:R0, hdgOut:CinF, flIn:st.fl, spdIn:st.spd, flOut:p.newFL, spdOut:p.spd, perf:p.shortV,
+    endTxt:`en rumbo ${fmtH(CinF)}, ingresando por el ${fmtR(R1)} — FL${flPad(p.newFL)}, ${p.spd} kt` };
+  return { ex, next:{ hdg:CinF, fl:p.newFL, spd:p.spd, fix:st.fix } };
+}
+
+/* ================= dibujos ================= */
+// distancia sobre la trayectoria hasta quedar abeam de la estación
+function abeamDist(px, py, h){
+  return (CX-px)*Math.sin(rad(h)) + (CY-py)*(-Math.cos(rad(h)));
+}
+function interceptBase(Rnow, Rt, fix, extraRadial){
+  let s = svgOpen() + rose();
+  s += radialLine(Rnow, fmtR(Rnow));
+  s += radialLine(Rt, fmtR(Rt), {color:"#3B6FB0", solid:true, arrow:false});
+  if(extraRadial !== undefined) s += radialLine(extraRadial, "", {r2:150});
+  return s;
+}
+function drawIngresoDirecta({Rnow, Rt, Cin, hInt, fix}){
+  let s = interceptBase(Rnow, Rt, fix);
+  const r0 = 165;
+  const [px,py] = pol(Rnow, r0);
+  const t1 = d180(hInt, Rnow);
+  const f1 = fly(px,py,Rnow,[{turn:t1}]);
+  const tt = hitRay(f1.x, f1.y, hInt, Rt);
+  const straight = tt !== null ? Math.max(10, tt - 22) : 110;
+  const t2 = d180(Cin, hInt);
+  const f2 = fly(f1.x, f1.y, hInt, [{str:straight},{turn:t2}]);
+  const finLen = Math.max(18, Math.hypot(f2.x-CX, f2.y-CY) - 24);
+  const full = fly(px,py,Rnow,[{turn:t1},{str:straight},{turn:t2},{str:finLen}]);
+  s += pathLine(full.pts);
+  s += plane(px,py,Rnow);
+  s += station(CX,CY,fix.split(" ").pop());
+  s += "</svg>";
+  return s;
+}
+function drawIngresoPasada({Rnow, Rt, Cin, h1, h2, sLine, fix}){
+  let s = interceptBase(Rnow, Rt, fix);
+  const r0 = 155;
+  const [px,py] = pol(Rnow, r0);
+  const t1 = d180(h1, Rnow);
+  const f1 = fly(px,py,Rnow,[{turn:t1}]);
+  const ab = abeamDist(f1.x, f1.y, h1);
+  const leg1 = Math.max(30, ab) + 62;                 // hasta abeam + 1 minuto
+  const f2 = fly(f1.x, f1.y, h1, [{str:leg1},{turn:-sLine*90}]);
+  const tt = hitRay(f2.x, f2.y, h2, Rt);
+  const straight = tt !== null ? Math.max(8, tt - 22) : 70;
+  const f3 = fly(f2.x, f2.y, h2, [{str:straight},{turn:-sLine*90}]);
+  const finLen = Math.max(18, Math.hypot(f3.x-CX, f3.y-CY) - 24);
+  const full = fly(px,py,Rnow,[{turn:t1},{str:leg1},{turn:-sLine*90},{str:straight},{turn:-sLine*90},{str:finLen}]);
+  s += pathLine(full.pts);
+  // marca de abeam
+  const fab = fly(px,py,Rnow,[{turn:t1},{str:Math.max(30,ab)}]);
+  s += `<circle cx="${fab.x.toFixed(1)}" cy="${fab.y.toFixed(1)}" r="4" fill="none" stroke="#8A8468" stroke-width="1.6"/>`;
+  s += textAt(fab.x+3, fab.y-12, "abeam +1'", {color:"#8A8468", size:11});
+  s += plane(px,py,Rnow);
+  s += station(CX,CY,fix.split(" ").pop());
+  s += "</svg>";
+  return s;
+}
+function drawSalidaDirecta({Rnow, Rt, hInt, fix}){
+  let s = interceptBase(Rnow, Rt, fix);
+  const r0 = 120;
+  const [px,py] = pol(Rnow, r0);
+  const t1 = d180(hInt, Rnow);
+  const f1 = fly(px,py,Rnow,[{turn:t1}]);
+  const tt = hitRay(f1.x, f1.y, hInt, Rt);
+  const straight = tt !== null ? Math.max(8, tt - 22) : 90;
+  const t2 = d180(Rt, hInt);
+  const full = fly(px,py,Rnow,[{turn:t1},{str:straight},{turn:t2},{str:64}]);
+  s += pathLine(full.pts);
+  s += plane(px,py,Rnow);
+  s += station(CX,CY,fix.split(" ").pop());
+  s += "</svg>";
+  return s;
+}
+function drawSalidaPasada({Rnow, Rt, h1, h2, sLine, fix}){
+  let s = interceptBase(Rnow, Rt, fix);
+  const r0 = 150;
+  const [px,py] = pol(Rnow, r0);
+  const t1 = d180(h1, Rnow);
+  const f1 = fly(px,py,Rnow,[{turn:t1}]);
+  const ab = abeamDist(f1.x, f1.y, h1);
+  const leg1 = Math.max(30, ab);
+  const f2 = fly(f1.x, f1.y, h1, [{str:leg1},{turn:-sLine*45}]);
+  const tt = hitRay(f2.x, f2.y, h2, Rt);
+  const straight = tt !== null ? Math.max(8, tt - 22) : 80;
+  const full = fly(px,py,Rnow,[{turn:t1},{str:leg1},{turn:-sLine*45},{str:straight},{turn:sLine*45},{str:60}]);
+  s += pathLine(full.pts);
+  const fab = fly(px,py,Rnow,[{turn:t1},{str:leg1}]);
+  s += `<circle cx="${fab.x.toFixed(1)}" cy="${fab.y.toFixed(1)}" r="4" fill="none" stroke="#8A8468" stroke-width="1.6"/>`;
+  s += textAt(fab.x+3, fab.y-12, "abeam", {color:"#8A8468", size:11});
+  s += plane(px,py,Rnow);
+  s += station(CX,CY,fix.split(" ").pop());
+  s += "</svg>";
+  return s;
+}
+function drawHold({Cin, right, Hin, entry, fix}){
+  // marco canónico: inbound apuntando hacia arriba, fix en F; espejo para izquierda; rotar por Cin
+  const F = [CX, CY+55];
+  const r = 46, legLen = 120;
+  const mir = right ? 1 : -1;
+  // racetrack canónico (derecha)
+  const inb = fly(F[0], F[1]+legLen, 0, [{str:legLen}]);                    // tramo inbound hacia el fix
+  const rt1 = fly(F[0], F[1], 0, [{turn:180, r},{str:legLen},{turn:180, r},{str:legLen-2}]);
+  // entrada
+  const app0 = [F[0] - 150*Math.sin(rad(0)), F[1] + 150];                   // se reemplaza según Hrel
+  let entryPath;
+  if(entry === "directa"){
+    entryPath = fly(F[0], F[1], 0, [{turn:100, r}]);
+  } else if(entry === "gota"){
+    entryPath = fly(F[0], F[1], 150, [{str:legLen*0.95},{turn:-160, r:40},{str:30}]);
+  } else { // paralela
+    entryPath = fly(F[0], F[1], 180, [{str:legLen*0.95},{turn:-230, r:40},{str:46}]);
+  }
+  // rumbo de llegada relativo (en marco canónico): Hrel = Hin - Cin (espejado si izquierda)
+  const Hrel = right ? norm(Hin - Cin) : norm(Cin - Hin);
+  const A = [F[0] - 120*Math.sin(rad(Hrel)), F[1] + 120*Math.cos(rad(Hrel))];
+  const arrival = [A, F];
+  const g = `
+  <g transform="rotate(${Cin} ${F[0]} ${F[1]})">
+    <g transform="${right?"":`translate(${2*F[0]},0) scale(-1,1)`}">
+      <polyline points="${poly(inb.pts)}" fill="none" stroke="#1B2740" stroke-width="2.2" marker-end="url(#arrg)"/>
+      <polyline points="${poly(rt1.pts)}" fill="none" stroke="#1B2740" stroke-width="2.2"/>
+      <polyline points="${poly(arrival)}" fill="none" stroke="#98A2B5" stroke-width="2" stroke-dasharray="3 5"/>
+      ${pathLine(entryPath.pts)}
+      ${plane(A[0],A[1],Hrel===0?0.01:Hrel,"#22B8C8")}
+    </g>
+  </g>`;
+  // etiquetas en coordenadas de mundo
+  function world(p){
+    let x = p[0], y = p[1];
+    if(!right){ x = 2*F[0] - x; }
+    const c = Math.cos(rad(Cin)), si = Math.sin(rad(Cin));
+    const dx = x - F[0], dy = y - F[1];
+    return [F[0] + dx*c - dy*si, F[1] + dx*si + dy*c];
+  }
+  const inbMid = world([F[0], F[1]+legLen*0.6]);
+  const outMid = world([F[0]+2*r*mir*0 + 2*r, F[1]+legLen*0.5]);
+  let s = svgOpen() + rose() + g;
+  s += station(F[0],F[1],fix.split(" ").pop());
+  s += textAt(inbMid[0], inbMid[1], fmtH(Cin), {color:"#3B6FB0", bold:true, size:13});
+  s += textAt(outMid[0], outMid[1], fmtH(Cin+180), {color:"#8A8468", size:12});
+  const Aw = world([ F[0] - 132*Math.sin(rad(Hrel)), F[1] + 132*Math.cos(rad(Hrel)) ]);
+  s += textAt(Aw[0], Aw[1], fmtH(Hin), {color:"#0e7683", bold:true, size:13});
+  s += "</svg>";
+  return s;
+}
+function drawReversal({X, right, tipo, fix, Cin}){
+  // georreferenciado: estación al centro, norte arriba (como los demás dibujos)
+  const cin = (Cin !== undefined) ? Cin : norm(X + 180);
+  const sg = right ? 1 : -1;
+  let segs;
+  if(tipo === "4518"){
+    segs = [{str:118},{turn:sg*45, r:28},{str:58},{turn:-sg*180, r:38}];
+  } else if(tipo === "9027"){
+    segs = [{str:110},{turn:sg*90, r:32},{turn:-sg*270, r:32}];
+  } else { // gota: X ya es el rumbo divergente
+    segs = [{str:150},{turn:-sg*210, r:42}];
+  }
+  const f = fly(CX, CY, X, segs);            // pierna de alejamiento + reversión, desde la estación
+  const pts = f.pts.slice();
+  // regreso: interceptar el curso de acercamiento (cin) y volver a la estación
+  const tt = hitRay(f.x, f.y, f.hdg, cin);
+  if(tt !== null && tt < 300){
+    const g = fly(f.x, f.y, f.hdg, [{str:tt}]);
+    pts.push([g.x, g.y]);
+  }
+  pts.push([CX, CY]);
+
+  let s = svgOpen() + rose();
+  if(tipo !== "gota") s += radialLine(X, fmtR(X));                                   // radial de alejamiento
+  else s += radialLine(X, "", {r2:150});                                             // tramo divergente (sin etiqueta)
+  s += radialLine(cin, "crs " + fmtH(cin), {color:"#3B6FB0", solid:true, arrow:false});  // curso de acercamiento
+  s += pathLine(pts);
+  s += plane(CX, CY, X);
+  s += station(CX, CY, fix.split(" ").pop());
+  s += "</svg>";
+  return s;
+}
+function drawArc({R0, R1, s:sg, fix, dist}){
+  const rArc = 150;
+  let s = svgOpen() + rose();
+  s += radialLine(R0, fmtR(R0));
+  s += radialLine(R1, fmtR(R1), {color:"#3B6FB0", solid:true});
+  // arco de referencia (círculo DME punteado)
+  s += `<circle cx="${CX}" cy="${CY}" r="${rArc}" fill="none" stroke="#C8C2AF" stroke-width="1.2" stroke-dasharray="2 6"/>`;
+  // trayectoria: inbound por R0, viraje 90, arco muestreado, viraje al ingreso
+  const startR = 215;
+  const [px,py] = pol(R0, startR);
+  const h0 = norm(R0+180);
+  const pts = [[px,py]];
+  // recta hasta un poco antes del arco
+  const [ax,ay] = pol(R0, rArc+16);
+  pts.push([ax,ay]);
+  // arco muestreado desde R0 hasta R1-5*sg
+  const endAz = norm(R1 - sg*6);
+  let a = R0;
+  const total = sg>0 ? norm(endAz - R0) : norm(R0 - endAz);
+  for(let t=0; t<=total; t+=4){
+    pts.push(pol(norm(R0 + sg*t), rArc));
+  }
+  // ingreso final por R1
+  pts.push(pol(R1, rArc-24));
+  pts.push(pol(R1, 34));
+  s += pathLine(pts);
+  s += plane(px,py,h0);
+  s += station(CX,CY,fix.split(" ").pop());
+  s += textAt(...pol(norm(R0+sg*total/2), rArc+22), `${dist} DME`, {color:"#8A8468", size:12});
+  s += "</svg>";
+  return s;
+}
+
+
+
+/* ================= almacenamiento seguro (persistente si se abre el archivo local) ================= */
+const store = (() => {
+  let ok = false;
+  try { const k="__hvi_t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); ok = true; } catch(e){}
+  const mem = {};
+  return {
+    ok,
+    get(k){ try { return ok ? localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch(e){ return k in mem ? mem[k] : null; } },
+    set(k,v){ try { ok ? localStorage.setItem(k,v) : (mem[k]=v); } catch(e){ mem[k]=v; } },
+    del(k){ try { ok ? localStorage.removeItem(k) : delete mem[k]; } catch(e){ delete mem[k]; } }
+  };
+})();
+
+/* ================= historial ================= */
+let history = (() => { try { return JSON.parse(store.get("hvi_hist") || "[]"); } catch(e){ return []; } })();
+function saveHistory(){ store.set("hvi_hist", JSON.stringify(history)); }
+function logExercise(ex, result){
+  history.push({ t:Date.now(), kind:ex.kind, title:ex.title, hdgIn:ex.hdgIn, hdgOut:ex.hdgOut,
+    flIn:ex.flIn, spdIn:ex.spdIn, flOut:ex.flOut, spdOut:ex.spdOut, perf:ex.perf, endTxt:ex.endTxt, result });
+  if(history.length > 800) history = history.slice(-800);
+  saveHistory(); renderHistory();
+}
+function renderHistory(){
+  const list = $("histList");
+  const tot = history.length;
+  const nOk = history.filter(h => h.result==="ok").length;
+  const nBad = history.filter(h => h.result==="bad").length;
+  $("histTotals").innerHTML = tot
+    ? `${tot} ejercicio${tot!==1?"s":""} · <span class="hOk">✔ ${nOk}</span> · <span class="hBad">✘ ${nBad}</span>${store.ok?"":" · <span class=\"hmem\">(en memoria: abrí el archivo descargado para que se guarde)</span>"}`
+    : `Sin ejercicios todavía.${store.ok?"":" <span class=\"hmem\">La persistencia se activa al abrir el archivo descargado en tu navegador.</span>"}`;
+  if(!tot){ list.innerHTML = ""; return; }
+  const rows = history.slice().reverse().slice(0, 60).map((h,i) => {
+    const n = tot - i;
+    const ic = h.result==="ok" ? '<span class="hOk">✔</span>' : h.result==="bad" ? '<span class="hBad">✘</span>' : '<span class="hSkip">–</span>';
+    const kindCls = h.kind==="RADIALES"?"kr":h.kind==="ESPERA"?"ke":h.kind==="INVERSIÓN"?"ki":"ka";
+    const perf = h.perf ? `<span class="hp">${h.perf} · ${h.spdOut}kt</span>` : "";
+    return `<div class="hrow">
+      <span class="hn">${String(n).padStart(2,"0")}</span>
+      <span class="hk ${kindCls}">${h.kind}</span>
+      <span class="ht">${h.title}</span>
+      <span class="hh">${fmtH(h.hdgIn)}→${fmtH(h.hdgOut)} ${perf}</span>
+      <span class="hres">${ic}</span>
+    </div>`;
+  }).join("");
+  list.innerHTML = rows + (tot>60 ? `<div class="hmore">… y ${tot-60} más</div>` : "");
+}
+
+/* ================= modo / sesión ================= */
+const cb = id => { const e = $(id); return !!e && e.checked; };
+const SEQ = [
+  {t:"salida", mayor:false}, {t:"ingreso", mayor:false},
+  {t:"salida", mayor:true},  {t:"ingreso", mayor:true},
+  {t:"espera"},
+  {t:"inv", tipo:"4518"}, {t:"inv", tipo:"9027"},
+  {t:"gota"}, {t:"arco"}
+];
+const SEQ_LABELS = ["Salida · ruta directa","Ingreso · ruta directa","Salida · ruta pasada","Ingreso · ruta pasada",
+  "Incorporación a la espera","Inversión 45/180","Inversión 90/270","Gota de agua","Arco DME"];
+
+let mode = "sesion";
+let carried = null;
+let seqIdx = 0;
+let curSeqIdx = -1;
+let sessionDone = false;
+let ok = 0, bad = 0;
+let currentLogged = false;
+
+function readCfg(){
+  let fl = parseInt(($("cfgFL")||{}).value, 10);
+  if(!(fl >= FLMIN && fl <= FLMAX)) fl = 100;
+  fl = Math.round(fl/10)*10;
+  let spd = parseInt(($("cfgSpd")||{}).value, 10);
+  if(!(spd >= 150 && spd <= 300)) spd = 210;
+  spd = Math.round(spd/10)*10;
+  return { fl, spd };
+}
+function initState(){
+  const c = readCfg();
+  lastVert = null;
+  return { hdg: r5(), fl: c.fl, spd: c.spd, fix: fixName() };
+}
+function generate(spec, st){
+  switch(spec.t){
+    case "salida":  return genSalida(st, spec.mayor);
+    case "ingreso": return genIngreso(st, spec.mayor);
+    case "espera":  return genEspera(st);
+    case "inv":     return genInversion(st, spec.tipo);
+    case "gota":    return genGota(st);
+    case "arco":    return genArco(st);
+  }
+}
+function allowedSpecs(){
+  const a = [];
+  if(cb("c_ing_menor")) a.push({t:"ingreso",mayor:false});
+  if(cb("c_ing_mayor")) a.push({t:"ingreso",mayor:true});
+  if(cb("c_sal_menor")) a.push({t:"salida",mayor:false});
+  if(cb("c_sal_mayor")) a.push({t:"salida",mayor:true});
+  if(cb("c_espera"))    a.push({t:"espera"});
+  if(cb("c_inv_4518"))  a.push({t:"inv",tipo:"4518"});
+  if(cb("c_inv_9027"))  a.push({t:"inv",tipo:"9027"});
+  if(cb("c_inv_gota"))  a.push({t:"gota"});
+  if(cb("c_arco"))      a.push({t:"arco"});
+  return a;
+}
+let lastKey = "";
+function pickSpec(list){
+  if(list.length === 1) return list[0];
+  let s, k, guard=0;
+  do { s = pick(list); k = s.t + (s.mayor??"") + (s.tipo??""); guard++; } while(k === lastKey && guard < 12);
+  lastKey = k; return s;
+}
+
+function updScore(){ $("scOk").textContent = ok; $("scBad").textContent = bad; }
+function setHdgBar(ex){
+  if(ex){ $("hdgNow").textContent = fmtH(ex.hdgIn); $("flNow").textContent = "FL"+flPad(ex.flIn); $("spdNow").textContent = ex.spdIn+" kt"; }
+  else { $("hdgNow").textContent = "—"; $("flNow").textContent = "—"; $("spdNow").textContent = "—"; }
+}
+function clearStage(){
+  curSeqIdx = -1; current = null; currentLogged = false; sessionDone = false;
+  setHdgBar(null);
+  $("exArea").innerHTML = mode==="sesion"
+    ? `<div class="empty">Sesión encadenada: cada ejercicio arranca <b>bloqueando el VOR</b> y el rumbo, nivel y velocidad con que terminás uno arrancan el siguiente. Presioná <b>Empezar sesión</b>.</div>`
+    : `<div class="empty">Elegí los tipos en el panel y presioná <b>Nuevo ejercicio</b>. Cada uno arranca bloqueando el VOR; el rumbo, nivel y velocidad se arrastran.</div>`;
+  $("btnReveal").disabled = true;
+  hideSolution();
+  updSeqList();
+}
+function updSeqList(){
+  const box = $("seqList");
+  if(!box) return;
+  box.innerHTML = SEQ_LABELS.map((l,i) => {
+    const cls = i < curSeqIdx ? "done" : i === curSeqIdx ? "now" : "todo";
+    const mk = i < curSeqIdx ? "✓" : i === curSeqIdx ? "▸" : (i+1);
+    return `<div class="seqrow ${cls}"><span class="seqn">${mk}</span><span>${l}</span></div>`;
+  }).join("");
+}
+
+function renderExercise(ex){
+  setHdgBar(ex);
+  $("exArea").innerHTML = `
+    <div class="clearance">
+      <div class="tag"><span>▸ ${ex.kind}</span><span class="kind">${ex.title}</span>
+        <span class="hdgpill">bloqueo ${fmtH(ex.hdgIn)} · FL${flPad(ex.flIn)} · ${ex.spdIn}kt</span></div>
+      <div class="msg">${ex.instr}</div>
+      <div class="task">${ex.task}</div>
+    </div>`;
+  $("btnReveal").disabled = false;
+  hideSolution();
+  $("btnNew").textContent = mode==="sesion" ? "Siguiente ejercicio" : "Nuevo ejercicio";
+}
+function renderSessionDone(){
+  sessionDone = true; curSeqIdx = SEQ.length; updSeqList();
+  setHdgBar(null);
+  $("exArea").innerHTML = `
+    <div class="clearance done">
+      <div class="tag"><span>✓ SESIÓN COMPLETA</span></div>
+      <div class="msg">Terminaste los ${SEQ.length} ejercicios de la sesión.
+      Resultado: <b class="hOk">✔ ${ok}</b> · <b class="hBad">✘ ${bad}</b>.</div>
+      <div class="task">Presioná <strong>Reiniciar sesión</strong> para volar otra desde un bloqueo nuevo.</div>
+    </div>`;
+  $("btnReveal").disabled = true;
+  hideSolution();
+  $("btnNew").textContent = "Reiniciar sesión";
+}
+function renderNoTypes(){
+  $("exArea").innerHTML = `<div class="empty">No hay tipos seleccionados. Marcá al menos uno en el panel.</div>`;
+  $("btnReveal").disabled = true; hideSolution();
+}
+
+function nextExercise(){
+  if(current && !currentLogged){ logExercise(current, null); currentLogged = true; }
+  let spec;
+  if(mode === "sesion"){
+    if(seqIdx >= SEQ.length){ renderSessionDone(); return; }
+    spec = SEQ[seqIdx];
+  } else {
+    const allowed = allowedSpecs();
+    if(!allowed.length){ renderNoTypes(); return; }
+    spec = pickSpec(allowed);
+  }
+  if(!carried) carried = initState();
+  const { ex, next } = generate(spec, carried);
+  current = ex; currentLogged = false; carried = next;
+  if(mode === "sesion"){ curSeqIdx = seqIdx; seqIdx++; }
+  renderExercise(ex);
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function onNew(){
+  if(mode === "sesion" && sessionDone){ startSession(); }
+  nextExercise();
+}
+function startSession(){
+  seqIdx = 0; curSeqIdx = -1; sessionDone = false;
+  carried = initState(); current = null; currentLogged = false;
+  ok = 0; bad = 0; updScore();
+  $("btnNew").textContent = "Empezar sesión";
+  updSeqList();
+}
+
+function hideSolution(){
+  $("solBox").classList.remove("show");
+  $("btnOk").disabled = false; $("btnBad").disabled = false;
+}
+function reveal(){
+  if(!current) return;
+  const s = current.sol;
+  $("solContent").innerHTML = `
+    <div class="answer">${s.answer}</div>
+    <ol class="steps">${s.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
+    <div class="endinfo">Terminás <b>${current.endTxt}</b> → próximo bloqueo: rumbo <b>${fmtH(current.hdgOut)}</b> · <b>FL${flPad(current.flOut)}</b> · <b>${current.spdOut} kt</b>.</div>`;
+  if(current.svg){
+    $("plateWrap").style.display = "block";
+    $("plateTitle").textContent = "Visualización — " + current.plateTitle;
+    $("plateSvg").innerHTML = current.svg;
+  } else { $("plateWrap").style.display = "none"; }
+  $("solBox").classList.add("show");
+  $("solBox").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+function mark(good){
+  if(!current) return;
+  if(!currentLogged){
+    logExercise(current, good ? "ok" : "bad"); currentLogged = true;
+    if(good) ok++; else bad++; updScore();
+  }
+  $("btnOk").disabled = true; $("btnBad").disabled = true;
+  nextExercise();
+}
+
+function setMode(m){
+  mode = m;
+  $("mode_sesion").classList.toggle("active", m==="sesion");
+  $("mode_libre").classList.toggle("active", m==="libre");
+  $("cfgSesion").style.display = m==="sesion" ? "block" : "none";
+  $("cfgLibre").style.display  = m==="libre"  ? "block" : "none";
+  if(m==="sesion"){ startSession(); }
+  else { carried = initState(); ok = 0; bad = 0; updScore(); }
+  clearStage();
+}
+
+/* ================= wiring ================= */
+$("btnNew").addEventListener("click", onNew);
+$("btnReveal").addEventListener("click", reveal);
+$("btnOk").addEventListener("click", () => mark(true));
+$("btnBad").addEventListener("click", () => mark(false));
+$("scReset").addEventListener("click", () => { ok=0; bad=0; updScore(); });
+$("mode_sesion").addEventListener("click", () => setMode("sesion"));
+$("mode_libre").addEventListener("click", () => setMode("libre"));
+$("histClear").addEventListener("click", () => {
+  if(!history.length) return;
+  if(confirm("¿Borrar todo el historial de ejercicios?")){ history = []; saveHistory(); renderHistory(); }
+});
+$("c_espera").addEventListener("change", e => {
+  document.querySelectorAll(".subgroup input").forEach(i => i.disabled = !e.target.checked);
+});
+["cfgFL","cfgSpd"].forEach(id => { const e=$(id); if(e) e.addEventListener("change", () => {
+  // reencender el estado inicial si todavía no arrancaste un ejercicio
+  if(!current){ carried = initState(); }
+}); });
+
+/* init */
+renderHistory();
+setMode("sesion");
+
+</script>
+</body>
+</html>
