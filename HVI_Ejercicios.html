@@ -654,13 +654,13 @@ function holdEntry(Cin, right, Hin){
   if(a <= 180) return "gota";
   return "paralela";
 }
-function genEspera(st){
+function genEspera(st, forceEntry){
   const fix = st.fix, cs = pick(CALLS);
   const Hin = st.hdg;
   const allowE = []; if(cb("c_e_directa")) allowE.push("directa"); if(cb("c_e_paralela")) allowE.push("paralela"); if(cb("c_e_gota")) allowE.push("gota");
   const allowT = []; if(cb("c_e_der")) allowT.push(true); if(cb("c_e_izq")) allowT.push(false);
   const fmts = []; if(cb("c_e_fmt_radial")) fmts.push("radial"); if(cb("c_e_fmt_curso")) fmts.push("curso");
-  const E = allowE.length ? allowE : ["directa","paralela","gota"];
+  const E = forceEntry ? [forceEntry] : (allowE.length ? allowE : ["directa","paralela","gota"]);
   const T = allowT.length ? allowT : [true,false];
   const F = fmts.length ? fmts : ["radial","curso"];
 
@@ -1063,15 +1063,29 @@ function renderHistory(){
 
 /* ================= modo / sesión ================= */
 const cb = id => { const e = $(id); return !!e && e.checked; };
-const SEQ = [
-  {t:"salida", mayor:false}, {t:"ingreso", mayor:false},
-  {t:"salida", mayor:true},  {t:"ingreso", mayor:true},
-  {t:"espera"},
-  {t:"inv", tipo:"4518"}, {t:"inv", tipo:"9027"},
-  {t:"gota"}, {t:"arco"}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+const SEQ_BASE = [
+  {t:"salida", mayor:false, label:"Salida · ruta directa"},
+  {t:"ingreso", mayor:false, label:"Ingreso · ruta directa"},
+  {t:"salida", mayor:true, label:"Salida · ruta pasada"},
+  {t:"ingreso", mayor:true, label:"Ingreso · ruta pasada"},
+  {holds:true},
+  {t:"inv", tipo:"4518", label:"Inversión 45/180"},
+  {t:"inv", tipo:"9027", label:"Inversión 90/270"},
+  {t:"gota", label:"Gota de agua"},
+  {t:"arco", label:"Arco DME"}
 ];
-const SEQ_LABELS = ["Salida · ruta directa","Ingreso · ruta directa","Salida · ruta pasada","Ingreso · ruta pasada",
-  "Incorporación a la espera","Inversión 45/180","Inversión 90/270","Gota de agua","Arco DME"];
+function buildSeq(){
+  const holds = shuffle([
+    {t:"espera", entry:"directa",  label:"Incorporación a la espera"},
+    {t:"espera", entry:"paralela", label:"Incorporación a la espera"},
+    {t:"espera", entry:"gota",     label:"Incorporación a la espera"}
+  ]);
+  const out = [];
+  for(const s of SEQ_BASE){ if(s.holds) out.push(...holds); else out.push(s); }
+  return out;
+}
+let seq = buildSeq();
 
 let mode = "sesion";
 let carried = null;
@@ -1099,7 +1113,7 @@ function generate(spec, st){
   switch(spec.t){
     case "salida":  return genSalida(st, spec.mayor);
     case "ingreso": return genIngreso(st, spec.mayor);
-    case "espera":  return genEspera(st);
+    case "espera":  return genEspera(st, spec.entry);
     case "inv":     return genInversion(st, spec.tipo);
     case "gota":    return genGota(st);
     case "arco":    return genArco(st);
@@ -1144,7 +1158,8 @@ function clearStage(){
 function updSeqList(){
   const box = $("seqList");
   if(!box) return;
-  box.innerHTML = SEQ_LABELS.map((l,i) => {
+  box.innerHTML = seq.map((s,i) => {
+    const l = s.label;
     const cls = i < curSeqIdx ? "done" : i === curSeqIdx ? "now" : "todo";
     const mk = i < curSeqIdx ? "✓" : i === curSeqIdx ? "▸" : (i+1);
     return `<div class="seqrow ${cls}"><span class="seqn">${mk}</span><span>${l}</span></div>`;
@@ -1165,12 +1180,12 @@ function renderExercise(ex){
   $("btnNew").textContent = mode==="sesion" ? "Siguiente ejercicio" : "Nuevo ejercicio";
 }
 function renderSessionDone(){
-  sessionDone = true; curSeqIdx = SEQ.length; updSeqList();
+  sessionDone = true; curSeqIdx = seq.length; updSeqList();
   setHdgBar(null);
   $("exArea").innerHTML = `
     <div class="clearance done">
       <div class="tag"><span>✓ SESIÓN COMPLETA</span></div>
-      <div class="msg">Terminaste los ${SEQ.length} ejercicios de la sesión.
+      <div class="msg">Terminaste los ${seq.length} ejercicios de la sesión.
       Resultado: <b class="hOk">✔ ${ok}</b> · <b class="hBad">✘ ${bad}</b>.</div>
       <div class="task">Presioná <strong>Reiniciar sesión</strong> para volar otra desde un bloqueo nuevo.</div>
     </div>`;
@@ -1187,8 +1202,8 @@ function nextExercise(){
   if(current && !currentLogged){ logExercise(current, null); currentLogged = true; }
   let spec;
   if(mode === "sesion"){
-    if(seqIdx >= SEQ.length){ renderSessionDone(); return; }
-    spec = SEQ[seqIdx];
+    if(seqIdx >= seq.length){ renderSessionDone(); return; }
+    spec = seq[seqIdx];
   } else {
     const allowed = allowedSpecs();
     if(!allowed.length){ renderNoTypes(); return; }
@@ -1206,6 +1221,7 @@ function onNew(){
   nextExercise();
 }
 function startSession(){
+  seq = buildSeq();
   seqIdx = 0; curSeqIdx = -1; sessionDone = false;
   carried = initState(); current = null; currentLogged = false;
   ok = 0; bad = 0; updScore();
