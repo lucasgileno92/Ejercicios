@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix to Fix — práctica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Barlow:wght@400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0C0D;
+  --panel:#16191C;
+  --bezel:#23282D;
+  --face:#0B0D0E;
+  --ink:#E7EAEB;
+  --muted:#878F96;
+  --line:#2B3136;
+  --amber:#FFA22B;
+  --cyan:#3FD0D8;
+  --led:#FF4436;
+  --ok:#5CC98B;
+  --bad:#E4574C;
+  --disp:"Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body:"Barlow", system-ui, -apple-system, sans-serif;
+  --mono:"Share Tech Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #14181B 0%, var(--bg) 60%);
+  color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.5;
+  min-height:100vh; padding:0 16px 64px;
+}
+.wrap{max-width:940px;margin:0 auto}
+
+/* ---------- header ---------- */
+header{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding:26px 0 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;
+}
+h1{
+  font-family:var(--disp);font-weight:600;font-size:30px;letter-spacing:.16em;
+  text-transform:uppercase;margin:0;
+}
+h1 span{color:var(--amber)}
+.tag{font-family:var(--disp);letter-spacing:.18em;text-transform:uppercase;
+  font-size:12px;color:var(--muted)}
+.score{font-family:var(--mono);font-size:15px;color:var(--muted)}
+.score b{color:var(--ink)}
+
+/* ---------- panel ---------- */
+.panel{
+  margin:22px 0;padding:22px 18px 16px;border-radius:10px;
+  background:linear-gradient(180deg,#1B1F23 0%,#121517 100%);
+  border:1px solid #2C3238;
+  box-shadow:0 18px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+  position:relative;
+}
+.panel::before,.panel::after{
+  content:"";position:absolute;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #4A5158, #191C1F 70%);top:9px;
+}
+.panel::before{left:9px}.panel::after{right:9px}
+.gauges{display:flex;gap:26px;justify-content:center;flex-wrap:wrap}
+.gauge{width:300px;max-width:100%}
+.gauge svg{width:100%;height:auto;display:block;touch-action:none}
+.gname{
+  font-family:var(--disp);text-transform:uppercase;letter-spacing:.2em;
+  font-size:11px;color:var(--muted);text-align:center;margin:0 0 8px;
+}
+.readouts{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.led{
+  font-family:var(--mono);font-size:17px;color:var(--led);
+  background:#0A0B0C;border:1px solid #2A2F34;border-radius:4px;
+  padding:3px 10px;letter-spacing:.08em;
+  box-shadow:inset 0 0 12px rgba(255,68,54,.14);
+}
+.led i{font-style:normal;color:#6B7278;font-size:11px;letter-spacing:.14em;
+  font-family:var(--disp);text-transform:uppercase;margin-right:6px}
+.knobrow{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:12px}
+.knobrow svg{width:74px;height:74px;touch-action:none;cursor:ew-resize}
+.step{padding:8px 13px;font-size:15px;line-height:1;letter-spacing:0;border-radius:6px;
+  background:#1B1F22;user-select:none}
+.step:active{background:#2E353A;border-color:var(--amber)}
+.knoblbl{font-family:var(--disp);text-transform:uppercase;letter-spacing:.18em;
+  font-size:10.5px;color:#5B6268;text-align:center;margin:6px 0 0}
+.hint{
+  text-align:center;font-size:12.5px;color:var(--muted);margin:14px 0 0;
+  font-family:var(--disp);letter-spacing:.06em;text-transform:uppercase;
+}
+
+/* svg classes */
+.tick{stroke:#C9CFD3;stroke-width:1.6}
+.tick.long{stroke:#EDEFF0;stroke-width:2.4}
+.cardlbl{fill:#EDEFF0;font-family:var(--disp);font-size:21px;font-weight:500;
+  text-anchor:middle;dominant-baseline:central}
+.bezel-ring{fill:none;stroke:#2E343A;stroke-width:12}
+.face{fill:var(--face)}
+.plane{stroke:#EDEFF0;stroke-width:2.6;fill:none;stroke-linecap:round}
+.lubber{fill:var(--amber)}
+.bug{fill:var(--amber);cursor:grab}
+.bug:active{cursor:grabbing}
+.cdi{stroke:#F2F4F5;stroke-width:5;stroke-linecap:round}
+.dot{fill:none;stroke:#9AA2A8;stroke-width:1.6}
+.flagbox{fill:#101314;stroke:#2E343A}
+.flagtxt{fill:#EDEFF0;font-family:var(--disp);font-size:13px;letter-spacing:.1em;
+  text-anchor:middle;dominant-baseline:central}
+.offflag{fill:#B23B33}
+.aid-line{stroke:var(--cyan);stroke-width:2.2;stroke-linecap:round}
+.aid-ghost{stroke:#5C6A70;stroke-width:2;stroke-dasharray:5 4}
+.aid-pt{fill:var(--amber)}
+.aid-pt2{fill:var(--cyan)}
+.aid-lbl{font-family:var(--disp);font-size:13px;letter-spacing:.08em;
+  text-anchor:middle;dominant-baseline:central}
+
+/* ---------- brief ---------- */
+.brief{
+  border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin-bottom:18px;
+  background:#101315;
+}
+.eyebrow{font-family:var(--disp);text-transform:uppercase;letter-spacing:.22em;
+  font-size:11px;color:var(--amber);margin:0 0 6px}
+.clearance{font-size:19px;margin:0;font-family:var(--disp);letter-spacing:.03em}
+.clearance b{color:var(--amber);font-weight:600}
+.pos{margin:8px 0 0;font-size:14px;color:var(--muted);font-family:var(--mono)}
+
+.fields{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;align-items:flex-end}
+label{display:block;font-family:var(--disp);text-transform:uppercase;
+  letter-spacing:.16em;font-size:11px;color:var(--muted);margin-bottom:6px}
+input[type=number]{
+  width:130px;background:#0A0C0D;border:1px solid #333A40;border-radius:5px;
+  color:var(--ink);font-family:var(--mono);font-size:22px;padding:8px 12px;
+}
+input[type=number]:focus{outline:2px solid var(--amber);outline-offset:1px;border-color:transparent}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button{
+  font-family:var(--disp);text-transform:uppercase;letter-spacing:.14em;font-size:13px;
+  padding:10px 18px;border-radius:5px;cursor:pointer;border:1px solid #3A4147;
+  background:#1B1F22;color:var(--ink);transition:background .15s,border-color .15s;
+}
+button:hover{background:#242A2E}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button.primary{background:var(--amber);color:#141618;border-color:var(--amber);font-weight:600}
+button.primary:hover{background:#FFB35C}
+button.ghost{background:transparent}
+button[aria-pressed=true]{border-color:var(--cyan);color:var(--cyan)}
+
+.opts{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;
+  padding-top:14px;border-top:1px solid var(--line)}
+.opts label{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;
+  letter-spacing:.08em;color:var(--muted);text-transform:none;font-size:13px;
+  font-family:var(--body)}
+.opts input{accent-color:var(--amber);width:16px;height:16px}
+
+/* ---------- solución ---------- */
+.sol{border:1px solid var(--line);border-radius:8px;padding:18px 20px;
+  margin-bottom:18px;background:#101315}
+.verdict{font-family:var(--disp);text-transform:uppercase;letter-spacing:.18em;
+  font-size:15px;margin:0 0 12px}
+.verdict.ok{color:var(--ok)} .verdict.bad{color:var(--bad)}
+.numbers{display:flex;gap:26px;flex-wrap:wrap;margin:0 0 14px}
+.num{min-width:96px}
+.num span{display:block;font-family:var(--disp);text-transform:uppercase;
+  letter-spacing:.16em;font-size:10.5px;color:var(--muted)}
+.num b{font-family:var(--mono);font-size:24px;font-weight:400}
+.steps{margin:0;padding-left:18px;font-size:14.5px;color:#C7CDD1}
+.steps li{margin:5px 0}
+.rule{
+  margin-top:16px;padding:14px 16px;border-radius:6px;
+  background:#17211D;border:1px dashed #33473F;
+  font-family:var(--disp);letter-spacing:.05em;font-size:14.5px;color:#B9CFC4;
+}
+.rule em{color:#E8F3EC;font-style:normal}
+#planWrap{margin-top:18px}
+#planWrap svg{width:100%;max-width:460px;height:auto;display:block;margin:0 auto}
+.pv-ring{fill:none;stroke:#242A2E}
+.pv-radial{stroke:#495158;stroke-width:1.4;stroke-dasharray:6 5}
+.pv-track{stroke:var(--amber);stroke-width:2.6}
+.pv-lbl{font-family:var(--disp);font-size:13px;letter-spacing:.08em;fill:var(--muted)}
+.pv-lbl.a{fill:var(--amber)} .pv-lbl.c{fill:var(--cyan)}
+[hidden]{display:none !important}
+
+/* ---------- historial ---------- */
+.hist h2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.2em;
+  font-size:13px;color:var(--muted);margin:28px 0 10px}
+.hist ul{list-style:none;margin:0;padding:0}
+.hist li{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;
+  font-family:var(--mono);font-size:13.5px;color:var(--muted);
+  padding:8px 0;border-bottom:1px solid var(--line)}
+.hist .n{color:#5B6268;min-width:26px}
+.hist .r{margin-left:auto}
+.hist .r.ok{color:var(--ok)} .hist .r.bad{color:var(--bad)}
+footer{margin-top:34px;font-size:12.5px;color:#5B6268;line-height:1.7}
+@media (max-width:680px){
+  .gauges{gap:18px}
+  h1{font-size:24px}
+  .gauge{width:min(320px,86vw)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>Fix to <span>Fix</span></h1>
+    <p class="tag" style="margin:4px 0 0">Direccional + VOR · práctica CPL/HVI</p>
+  </div>
+  <p class="score">Ejercicio <b id="exNum">1</b> · Aciertos <b id="hits">0</b>/<b id="tot">0</b></p>
+</header>
+
+<section class="panel">
+  <div class="gauges">
+    <div class="gauge">
+      <p class="gname">Direccional</p>
+      <svg id="dg" viewBox="0 0 300 300" role="img" aria-label="Indicador direccional"></svg>
+      <div class="readouts">
+        <div class="led"><i>rumbo</i><span id="hdgRead">000</span></div>
+        <div class="led"><i>bug</i><span id="bugRead">000</span></div>
+      </div>
+    </div>
+    <div class="gauge">
+      <p class="gname">VOR / OBS</p>
+      <svg id="vor" viewBox="0 0 300 300" role="img" aria-label="Indicador de VOR con OBS"></svg>
+      <div class="readouts">
+        <div class="led"><i>obs</i><span id="obsRead">000</span></div>
+        <div class="led"><i>flag</i><span id="flagRead">FROM</span></div>
+        <div class="led"><i>dme</i><span id="dmeRead">0.0</span></div>
+      </div>
+      <div class="knobrow">
+        <button class="step" id="obsMinus" aria-label="Restar grados al OBS">&#9664;</button>
+        <svg id="obsKnob" viewBox="0 0 80 80" role="img" aria-label="Perilla del OBS"></svg>
+        <button class="step" id="obsPlus" aria-label="Sumar grados al OBS">&#9654;</button>
+      </div>
+      <p class="knoblbl">perilla obs</p>
+    </div>
+  </div>
+  <p class="hint">Perilla, flechas ←/→ (Shift = de a 5°) o arrastre sobre la rosa para el OBS · arrastrá sobre el direccional para mover el bug</p>
+</section>
+
+<section class="brief">
+  <p class="eyebrow" id="briefEyebrow">Autorización</p>
+  <p class="clearance" id="clearance">—</p>
+  <p class="pos" id="posLine" hidden></p>
+
+  <div class="fields">
+    <div>
+      <label for="ansHdg">Rumbo directo al fijo</label>
+      <input id="ansHdg" type="number" min="0" max="360" inputmode="numeric" placeholder="000">
+    </div>
+    <div id="distField">
+      <label for="ansDist">Distancia al fijo (NM)</label>
+      <input id="ansDist" type="number" min="0" max="99" step="0.1" inputmode="decimal" placeholder="0.0">
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="primary" id="btnCheck">Verificar</button>
+    <button class="ghost" id="btnNext">Nuevo ejercicio</button>
+  </div>
+
+  <div class="opts">
+    <label><input type="checkbox" id="optPos"> Mostrar mi posición en el enunciado</label>
+    <label><input type="checkbox" id="optDist" checked> Pedir también la distancia</label>
+  </div>
+</section>
+
+<section class="sol" id="sol" hidden>
+  <p class="verdict" id="verdict"></p>
+  <div class="numbers" id="numbers"></div>
+  <ol class="steps" id="steps"></ol>
+  <div class="rule">
+    <em>La regla:</em> vos sos la cola del puntero · el target es la radial ·
+    mayor DME al borde de la rosa, menor hacia adentro ·
+    trazás la línea · la transponés al centro · el rumbo lo leés arriba.
+  </div>
+  <div class="btns">
+    <button id="btnPlan" aria-pressed="false">Vista plana</button>
+    <button id="btnAid" aria-pressed="false">Mostrar el truco en la rosa</button>
+  </div>
+  <div id="planWrap" hidden></div>
+</section>
+
+<section class="hist">
+  <h2>Historial</h2>
+  <ul id="histList"><li style="color:#4E555B">Todavía no resolviste ninguno.</li></ul>
+</section>
+
+<footer>
+  Sin viento y sin variación magnética: el rumbo directo es igual al curso magnético.
+  Tolerancia: ±5° en rumbo, ±1.5 NM en distancia.
+  Método original: fix-to-fix del T-38 (Code 7700, 1979).
+</footer>
+
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const D2R = Math.PI/180;
+const n360 = a => ((a % 360) + 360) % 360;
+const n180 = a => { const x = n360(a); return x > 180 ? x - 360 : x; };
+const rndi = (a,b) => Math.floor(a + Math.random()*(b-a+1));
+const pad3 = v => String(Math.round(n360(v))).padStart(3,"0").replace("000","360");
+const pol = (radial, dme) => ({ x: dme*Math.sin(radial*D2R), y: dme*Math.cos(radial*D2R) });
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+const STATIONS = ["EZE","ROS","COR","MDQ","BHI","NEU","MDZ","TUC","SLA","PMY"];
+
+/* ---------------- estado ---------------- */
+let ex = null;         // ejercicio actual
+let obs = 0;           // OBS del VOR
+let bug = 0;           // bug del direccional
+let answered = false;
+let count = 0, hits = 0, total = 0;
+const history = [];
+
+/* ---------------- generador ---------------- */
+function generar(){
+  for (let i = 0; i < 400; i++){
+    const r1 = rndi(0,71) * 5;
+    const d1 = rndi(9,28);
+    const delta = (Math.random() < .5 ? -1 : 1) * rndi(4,26) * 5;
+    const r2 = n360(r1 + delta);
+    const d2 = clamp(d1 + (Math.random() < .5 ? -1 : 1) * rndi(3,13), 5, 30);
+    const p1 = pol(r1,d1), p2 = pol(r2,d2);
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const dist = Math.hypot(dx,dy);
+    if (dist < 6 || dist > 34) continue;
+    const crs = n360(Math.atan2(dx,dy)/D2R);
+    const hdg = rndi(0,71) * 5;
+    if (Math.abs(n180(crs - hdg)) < 20) continue;   // que siempre haya viraje
+    return { r1, d1, r2, d2, crs, dist, hdg, sta: STATIONS[rndi(0,STATIONS.length-1)] };
+  }
+  return { r1:270, d1:16, r2:305, d2:11, crs:n360(Math.atan2(
+      pol(305,11).x - pol(270,16).x, pol(305,11).y - pol(270,16).y)/D2R),
+      dist:Math.hypot(pol(305,11).x-pol(270,16).x, pol(305,11).y-pol(270,16).y),
+      hdg:360, sta:"EZE" };
+}
+
+/* ---------------- rosa de rumbos ---------------- */
+function cardTicks(rTick, rLong, rLbl, size){
+  let s = "";
+  for (let a = 0; a < 360; a += 5){
+    const long = a % 10 === 0;
+    s += `<g transform="rotate(${a} 150 150)"><line class="tick${long?" long":""}" `
+      +  `x1="150" y1="${150-rTick}" x2="150" y2="${150-(long?rLong:rTick-8)}"/></g>`;
+  }
+  for (let a = 0; a < 360; a += 30){
+    const t = a===0 ? "N" : a===90 ? "E" : a===180 ? "S" : a===270 ? "W" : String(a/10);
+    s += `<g transform="rotate(${a} 150 150)"><text class="cardlbl" style="font-size:${size}px" `
+      +  `x="150" y="${150-rLbl}">${t}</text></g>`;
+  }
+  return s;
+}
+
+/* ---------------- direccional ---------------- */
+function drawDG(){
+  const aid = aidOn ? aidOverlay() : "";
+  $("#dg").innerHTML = `
+    <circle cx="150" cy="150" r="146" fill="#1D2226"/>
+    <circle cx="150" cy="150" r="134" class="face"/>
+    <circle cx="150" cy="150" r="140" class="bezel-ring"/>
+    <g transform="rotate(${-ex.hdg} 150 150)">
+      ${cardTicks(118,100,74,21)}
+      ${aid}
+    </g>
+    <g transform="rotate(${n360(bug - ex.hdg)} 150 150)">
+      <path class="bug" d="M150 22 l-11 13 h5 v9 h12 v-9 h5 z"/>
+    </g>
+    <path class="lubber" d="M150 8 l-9 15 h18 z"/>
+    <path class="plane" d="M150 128 v44 M132 150 h36 M141 166 h18"/>
+  `;
+  $("#hdgRead").textContent = pad3(ex.hdg);
+  $("#bugRead").textContent = pad3(bug);
+}
+
+/* el truco: plotear yo/fijo sobre la rosa y transponer la línea al centro */
+function aidOverlay(){
+  const maxD = Math.max(ex.d1, ex.d2);
+  const k = 96 / maxD;
+  const P = (r,d) => ({ x: 150 + d*k*Math.sin(r*D2R), y: 150 - d*k*Math.cos(r*D2R) });
+  const A = P(ex.r1, ex.d1), B = P(ex.r2, ex.d2);
+  const C = { x: 150 + (B.x - A.x), y: 150 + (B.y - A.y) };
+  const rot = a => `rotate(${ex.hdg} ${a.x} ${a.y})`;   // texto derecho en pantalla
+  return `
+    <line class="aid-ghost" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"/>
+    <circle class="aid-pt"  cx="${A.x}" cy="${A.y}" r="5"/>
+    <circle class="aid-pt2" cx="${B.x}" cy="${B.y}" r="5"/>
+    <line class="aid-line" x1="150" y1="150" x2="${C.x}" y2="${C.y}"/>
+    <circle class="aid-line" cx="${C.x}" cy="${C.y}" r="3.5" fill="var(--cyan)"/>
+    <text class="aid-lbl" fill="var(--amber)" x="${A.x}" y="${A.y-13}" transform="${rot({x:A.x,y:A.y-13})}">YO</text>
+    <text class="aid-lbl" fill="var(--cyan)" x="${B.x}" y="${B.y-13}" transform="${rot({x:B.x,y:B.y-13})}">FIJO</text>`;
+}
+
+/* ---------------- VOR ---------------- */
+function cdiState(){
+  const o = n360(Math.round(obs));
+  const dFrom = n180(o - ex.r1);
+  const to = Math.abs(dFrom) > 90;
+  const off = Math.abs(Math.abs(dFrom) - 90) < 1;
+  const defl = to ? -clamp(n180(o - ex.r1 - 180)/10, -1, 1)
+                  :  clamp(dFrom/10, -1, 1);
+  return { to, off, defl };
+}
+
+function drawVOR(){
+  const st = cdiState();
+  const x = 150 + st.defl * 56;
+  let dots = "";
+  for (const d of [11.2, 22.4, 33.6, 44.8, 56]){
+    dots += `<circle class="dot" cx="${150-d}" cy="150" r="3.4"/>`
+         +  `<circle class="dot" cx="${150+d}" cy="150" r="3.4"/>`;
+  }
+  const toArrow   = `<path class="flagtxt" fill="#EDEFF0" d="M150 92 l11 16 h-22 z"/>`;
+  const fromArrow = `<path class="flagtxt" fill="#EDEFF0" d="M150 208 l11 -16 h-22 z"/>`;
+  $("#vor").innerHTML = `
+    <circle cx="150" cy="150" r="146" fill="#1D2226"/>
+    <circle cx="150" cy="150" r="134" class="face"/>
+    <circle cx="150" cy="150" r="140" class="bezel-ring"/>
+    <g transform="rotate(${-n360(Math.round(obs))} 150 150)">${cardTicks(118,100,74,21)}</g>
+    ${dots}
+    ${st.off ? "" : `<line class="cdi" x1="${x}" y1="84" x2="${x}" y2="216"/>`}
+    ${st.off ? `<rect class="offflag" x="96" y="138" width="46" height="24" rx="3"/>
+                <text class="flagtxt" fill="#101314" x="119" y="150">OFF</text>`
+             : (st.to ? toArrow : fromArrow)}
+    <path class="lubber" d="M150 8 l-9 15 h18 z"/>
+    <path class="lubber" d="M150 292 l-9 -15 h18 z" opacity=".45"/>
+    <circle cx="150" cy="150" r="7" fill="none" stroke="#9AA2A8" stroke-width="1.6"/>
+  `;
+  $("#obsRead").textContent = pad3(obs);
+  $("#flagRead").textContent = st.off ? "OFF" : (st.to ? "TO" : "FROM");
+  const k = $("#obsKnob"); if (k && !k.innerHTML) drawKnob();
+  $("#dmeRead").textContent = ex.d1.toFixed(1);
+}
+
+function drawKnob(){
+  const o = n360(Math.round(obs));
+  let ridges = "";
+  for (let a = 0; a < 360; a += 15){
+    ridges += `<g transform="rotate(${a} 40 40)"><line x1="40" y1="8" x2="40" y2="15" `
+           +  `stroke="#4A5158" stroke-width="2.6" stroke-linecap="round"/></g>`;
+  }
+  $("#obsKnob").innerHTML = `
+    <circle cx="40" cy="40" r="37" fill="#15181A" stroke="#31383D"/>
+    <g transform="rotate(${o} 40 40)">
+      ${ridges}
+      <circle cx="40" cy="40" r="26" fill="#1E2226" stroke="#3A4147"/>
+      <line x1="40" y1="18" x2="40" y2="30" stroke="var(--amber)" stroke-width="3.4" stroke-linecap="round"/>
+    </g>`;
+}
+
+function setObs(v){ obs = n360(v); drawVOR(); drawKnob(); }
+function stepObs(d){ setObs(Math.round(obs) + d); }
+
+/* ---------------- interacción ---------------- */
+function pointerAngle(el, e){
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  return Math.atan2(e.clientX - cx, -(e.clientY - cy)) / D2R;
+}
+
+function dragRotate(el, onDelta){
+  let last = null;
+  el.addEventListener("pointerdown", e => {
+    last = pointerAngle(el, e);
+    el.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  el.addEventListener("pointermove", e => {
+    if (last === null) return;
+    const a = pointerAngle(el, e);
+    onDelta(n180(a - last));
+    last = a;
+  });
+  const end = e => { last = null; try{ el.releasePointerCapture(e.pointerId); }catch(_){} };
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+}
+
+/* ---------------- vista plana ---------------- */
+function planSVG(){
+  const maxR = Math.max(ex.d1, ex.d2) * 1.15;
+  const S = 178 / maxR, cx = 210, cy = 210;
+  const p1 = pol(ex.r1, ex.d1), p2 = pol(ex.r2, ex.d2);
+  const X = p => cx + p.x*S, Y = p => cy - p.y*S;
+  const step = maxR > 24 ? 10 : 5;
+  let rings = "";
+  for (let r = step; r*S <= 186; r += step){
+    rings += `<circle class="pv-ring" cx="${cx}" cy="${cy}" r="${(r*S).toFixed(1)}"/>`
+          +  `<text class="pv-lbl" x="${cx+4}" y="${cy - r*S + 12}" style="font-size:11px">${r}</text>`;
+  }
+  const edge = (rad) => ({ x: cx + maxR*S*Math.sin(rad*D2R), y: cy - maxR*S*Math.cos(rad*D2R) });
+  const e1 = edge(ex.r1), e2 = edge(ex.r2);
+  const ang = Math.atan2(X(p2)-X(p1), -(Y(p2)-Y(p1)))/D2R;
+  return `<svg viewBox="0 0 420 420" role="img" aria-label="Vista plana del ejercicio">
+    ${rings}
+    <line class="pv-radial" x1="${cx}" y1="${cy}" x2="${e1.x}" y2="${e1.y}"/>
+    <line class="pv-radial" x1="${cx}" y1="${cy}" x2="${e2.x}" y2="${e2.y}"/>
+    <text class="pv-lbl a" x="${e1.x}" y="${e1.y - 8}" text-anchor="middle">R-${pad3(ex.r1)}</text>
+    <text class="pv-lbl c" x="${e2.x}" y="${e2.y - 8}" text-anchor="middle">R-${pad3(ex.r2)}</text>
+    <path d="M${cx} ${cy-9} l9 16 h-18 z" fill="#7C848A"/>
+    <circle cx="${cx}" cy="${cy}" r="3" fill="#0A0C0D"/>
+    <text class="pv-lbl" x="${cx}" y="${cy+22}" text-anchor="middle">${ex.sta}</text>
+    <line class="pv-track" x1="${X(p1)}" y1="${Y(p1)}" x2="${X(p2)}" y2="${Y(p2)}"/>
+    <g transform="translate(${X(p1)} ${Y(p1)}) rotate(${ex.hdg})">
+      <path d="M0 -11 l7 16 h-14 z" fill="var(--amber)"/>
+    </g>
+    <g transform="translate(${X(p2)} ${Y(p2)})">
+      <circle r="6" fill="none" stroke="var(--cyan)" stroke-width="2"/>
+      <line x1="-9" y1="0" x2="9" y2="0" stroke="var(--cyan)" stroke-width="1.4"/>
+      <line x1="0" y1="-9" x2="0" y2="9" stroke="var(--cyan)" stroke-width="1.4"/>
+    </g>
+    <text class="pv-lbl a" x="${X(p1)+14}" y="${Y(p1)+16}">yo · ${ex.d1} DME · rbo ${pad3(ex.hdg)}</text>
+    <text class="pv-lbl c" x="${X(p2)+14}" y="${Y(p2)-12}">fijo · ${ex.d2} DME</text>
+    <text class="pv-lbl a" x="${(X(p1)+X(p2))/2 + 10}" y="${(Y(p1)+Y(p2))/2 - 6}"
+      transform="rotate(${ang > 90 || ang < -90 ? ang+180 : ang} ${(X(p1)+X(p2))/2 + 10} ${(Y(p1)+Y(p2))/2 - 6})">
+      ${pad3(ex.crs)}° / ${ex.dist.toFixed(1)} NM</text>
+  </svg>`;
+}
+
+/* ---------------- ciclo del ejercicio ---------------- */
+let aidOn = false, planOn = false;
+
+function nuevo(){
+  ex = generar();
+  obs = rndi(0,71) * 5;
+  bug = ex.hdg;
+  answered = false;
+  aidOn = false; planOn = false;
+  count++;
+  $("#exNum").textContent = count;
+  $("#sol").hidden = true;
+  $("#planWrap").hidden = true;
+  $("#planWrap").innerHTML = "";
+  $("#btnPlan").setAttribute("aria-pressed","false");
+  $("#btnAid").setAttribute("aria-pressed","false");
+  $("#ansHdg").value = "";
+  $("#ansDist").value = "";
+  $("#clearance").innerHTML =
+    `VOR <b>${ex.sta}</b> — procedé directo a la <b>radial ${pad3(ex.r2)}</b>, <b>${ex.d2} DME</b>.`;
+  renderPos();
+  drawDG(); drawVOR(); drawKnob();
+  $("#ansHdg").focus();
+}
+
+function renderPos(){
+  const on = $("#optPos").checked;
+  $("#posLine").hidden = !on;
+  if (on) $("#posLine").textContent = `Posición actual: R-${pad3(ex.r1)} / ${ex.d1} DME · rumbo ${pad3(ex.hdg)}`;
+}
+
+function verificar(){
+  if (answered) return;
+  const vh = parseFloat($("#ansHdg").value);
+  if (!isFinite(vh)){ $("#ansHdg").focus(); return; }
+  const errH = n180(vh - ex.crs);
+  const okH = Math.abs(errH) <= 5;
+
+  const wantD = $("#optDist").checked;
+  const vd = parseFloat($("#ansDist").value);
+  const hasD = wantD && isFinite(vd);
+  const okD = hasD ? Math.abs(vd - ex.dist) <= 1.5 : true;
+  const ok = okH && okD;
+
+  answered = true;
+  total++; if (ok) hits++;
+  $("#hits").textContent = hits; $("#tot").textContent = total;
+
+  const turn = n180(ex.crs - ex.hdg);
+  $("#verdict").textContent = ok ? "Correcto" : "Fuera de tolerancia";
+  $("#verdict").className = "verdict " + (ok ? "ok" : "bad");
+  $("#numbers").innerHTML = `
+    <div class="num"><span>rumbo directo</span><b>${pad3(ex.crs)}°</b></div>
+    <div class="num"><span>tu respuesta</span><b>${pad3(vh)}° <small style="font-size:13px;color:${okH?"var(--ok)":"var(--bad)"}">${errH>0?"+":""}${Math.round(errH)}°</small></b></div>
+    <div class="num"><span>distancia</span><b>${ex.dist.toFixed(1)} NM</b></div>
+    <div class="num"><span>viraje</span><b>${Math.abs(Math.round(turn))}° ${turn>=0?"der":"izq"}</b></div>`;
+  $("#steps").innerHTML = `
+    <li>Girando el OBS hasta centrar con <b>FROM</b>: estás en la <b>radial ${pad3(ex.r1)}</b>, y el DME marca <b>${ex.d1} NM</b>.</li>
+    <li>Sobre la rosa del direccional: te marcás en la radial ${pad3(ex.r1)} y el fijo en la radial ${pad3(ex.r2)}. Como ${ex.d1 > ex.d2 ? `vos tenés más DME (${ex.d1} contra ${ex.d2})` : `el fijo tiene más DME (${ex.d2} contra ${ex.d1})`}, ${ex.d1 > ex.d2 ? "vos vas al borde de la rosa y el fijo hacia adentro" : "el fijo va al borde de la rosa y vos hacia adentro"}.</li>
+    <li>Unís los dos puntos, transponés esa línea al centro y leés arriba: <b>${pad3(ex.crs)}°</b>.</li>
+    <li>Desde el rumbo ${pad3(ex.hdg)} eso es un viraje de <b>${Math.abs(Math.round(turn))}° por ${turn>=0?"derecha":"izquierda"}</b>, y te quedan ${ex.dist.toFixed(1)} NM.</li>`;
+  $("#sol").hidden = false;
+
+  history.unshift({ n: count, ex, vh, ok, errH });
+  renderHist();
+  $("#sol").scrollIntoView({ behavior:"smooth", block:"nearest" });
+}
+
+function renderHist(){
+  if (!history.length) return;
+  $("#histList").innerHTML = history.map(h => `
+    <li><span class="n">#${h.n}</span>
+      <span>R-${pad3(h.ex.r1)}/${h.ex.d1} → R-${pad3(h.ex.r2)}/${h.ex.d2}</span>
+      <span style="color:#5B6268">rbo ${pad3(h.ex.hdg)}</span>
+      <span>vos ${pad3(h.vh)} · real ${pad3(h.ex.crs)}</span>
+      <span class="r ${h.ok?"ok":"bad"}">${h.ok ? "OK" : (h.errH>0?"+":"") + Math.round(h.errH) + "°"}</span>
+    </li>`).join("");
+}
+
+/* ---------------- listeners ---------------- */
+dragRotate($("#vor"), d => { setObs(obs - d); });
+
+/* perilla: arrastre horizontal, 0.55° por píxel */
+(function(){
+  const k = $("#obsKnob");
+  let lastX = null;
+  k.addEventListener("pointerdown", e => { lastX = e.clientX; k.setPointerCapture(e.pointerId); e.preventDefault(); });
+  k.addEventListener("pointermove", e => {
+    if (lastX === null) return;
+    setObs(obs + (e.clientX - lastX) * 0.55);
+    lastX = e.clientX;
+  });
+  const end = e => { lastX = null; try{ k.releasePointerCapture(e.pointerId); }catch(_){} };
+  k.addEventListener("pointerup", end);
+  k.addEventListener("pointercancel", end);
+})();
+
+/* botones ◀ ▶ con repetición al mantener apretado */
+function holdBtn(el, dir){
+  let t = null, iv = null, fast = null;
+  const start = e => {
+    e.preventDefault();
+    stepObs(dir);
+    t = setTimeout(() => {
+      iv = setInterval(() => stepObs(dir), 45);
+      fast = setTimeout(() => { clearInterval(iv); iv = setInterval(() => stepObs(dir*3), 45); }, 1200);
+    }, 320);
+  };
+  const stop = () => { clearTimeout(t); clearTimeout(fast); clearInterval(iv); t = iv = fast = null; };
+  el.addEventListener("pointerdown", start);
+  ["pointerup","pointerleave","pointercancel"].forEach(ev => el.addEventListener(ev, stop));
+}
+holdBtn($("#obsMinus"), -1);
+holdBtn($("#obsPlus"), 1);
+dragRotate($("#dg"),  d => { bug = n360(bug + d); drawDG(); if(!answered) $("#ansHdg").value = Math.round(n360(bug))||360; });
+
+$("#btnCheck").addEventListener("click", verificar);
+$("#btnNext").addEventListener("click", nuevo);
+$("#optPos").addEventListener("change", renderPos);
+$("#optDist").addEventListener("change", () => {
+  $("#distField").hidden = !$("#optDist").checked;
+});
+$("#ansHdg").addEventListener("input", () => {
+  const v = parseFloat($("#ansHdg").value);
+  if (isFinite(v)){ bug = n360(v); drawDG(); }
+});
+$("#btnPlan").addEventListener("click", () => {
+  planOn = !planOn;
+  $("#btnPlan").setAttribute("aria-pressed", String(planOn));
+  $("#planWrap").hidden = !planOn;
+  $("#planWrap").innerHTML = planOn ? planSVG() : "";
+});
+$("#btnAid").addEventListener("click", () => {
+  aidOn = !aidOn;
+  $("#btnAid").setAttribute("aria-pressed", String(aidOn));
+  drawDG();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter"){ answered ? nuevo() : verificar(); }
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight"){
+    stepObs((e.key === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 5 : 1));
+    e.preventDefault();
+  }
+});
+
+nuevo();
+</script>
+</body>
+</html>
