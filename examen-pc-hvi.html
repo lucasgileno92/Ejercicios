@@ -124,8 +124,22 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 .panel-head h3{font-family:var(--disp);font-size:1.2rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .panel-head button{border:2px solid #fff;background:transparent;color:#fff;font-family:var(--disp);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:6px 12px;cursor:pointer}
 .panel-body{max-width:720px;margin:0 auto;padding:12px 14px 60px}
+.hist-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 6px}
+.hist-opts{display:grid;gap:5px;margin-top:8px}
+.hist-opt{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--rule);background:#fff;padding:7px 9px;font-size:.82rem;line-height:1.4;border-radius:3px}
+.hist-opt.ok{border-color:var(--ok);background:var(--ok-bg);font-weight:600}
+.hist-opt-l{font-family:var(--mono);font-weight:600;font-size:.78rem;color:var(--muted);flex:0 0 auto}
+.hist-opt.ok .hist-opt-l{color:var(--ok)}
+.hist-opt-t{flex:1}
+.hist-opt-chk{color:var(--ok);font-weight:700;flex:0 0 auto}
+.hist-times{font-family:var(--mono);font-size:.62rem;color:var(--muted);letter-spacing:.04em}
+.hist-badge{font-family:var(--mono);font-size:.55rem;letter-spacing:.06em;padding:2px 7px;color:#fff}
+.hist-badge.queue{background:var(--amber)}
+.hist-badge.done{background:var(--ok)}
 .panel-empty{font-family:var(--mono);font-size:.75rem;color:var(--muted);text-align:center;padding:40px 10px}
 .mode-btn.rep{border-color:var(--amber)}
+.mode-btn.fresh{border-color:var(--ok)}
+.mode-btn.fresh .tag{background:var(--ok)}
 .mode-btn.rep .tag{background:var(--amber)}
 .errlinks{display:flex;gap:14px;justify-content:center;margin-top:10px}
 .gridwrap{border:2px solid var(--ink);border-top:none;background:var(--paper)}
@@ -145,6 +159,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 .cellq.r{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
 .cellq.here{background:var(--chart);border-color:var(--chart);color:#fff;box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--chart)}
 @media (max-width:520px){.grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.cellq{height:38px;font-size:.85rem}}
+.swapbar{padding:0 10px 10px}
+.swapbtn{width:100%;border:1.5px dashed var(--amber);background:transparent;color:var(--amber);font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:.04em;padding:9px;cursor:pointer;border-radius:3px}
+.swapbtn:active{background:#fdf6ec}
+.swapbtn:disabled{opacity:.4;cursor:default;border-style:solid}
 .review-badge{display:inline-block;font-family:var(--mono);font-size:.56rem;letter-spacing:.08em;background:var(--amber);color:#fff;padding:2px 7px;margin-left:8px;vertical-align:middle}
 .hidden{display:none}
 @media (max-width:480px){
@@ -187,6 +205,11 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
         <h2>Simulacro · 100 preguntas</h2>
         <p>100 preguntas elegidas completamente al azar del banco. Corrección instantánea y promedio en vivo.</p>
       </button>
+      <button class="mode-btn fresh" id="freshBtn" onclick="startQuiz('simnew')">
+        <span class="tag">MODO A+</span>
+        <h2>Simulacro sin dominadas</h2>
+        <p>Como el simulacro, pero sin las preguntas que ya acertaste en simulacros. <span id="freshInfo"></span></p>
+      </button>
       <button class="mode-btn rep hidden" id="repBtn" onclick="startQuiz('rep')">
         <span class="tag">REGISTRO</span>
         <h2>Repasar errores · <span id="errCount">0</span></h2>
@@ -199,8 +222,16 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
       </button>
     </div>
     <div class="errlinks">
-      <button class="linkbtn hidden" id="errViewLink" onclick="openErrPanel('log')">Ver registro de errores</button>
-      <button class="linkbtn hidden" id="errClearLink" onclick="clearErrLog()">Borrar registro</button>
+      <button class="linkbtn hidden" id="errViewLink" onclick="openErrPanel('log')">Ver cola de repaso</button>
+      <button class="linkbtn hidden" id="errClearLink" onclick="clearErrLog()">Vaciar cola</button>
+    </div>
+    <div class="errlinks">
+      <button class="linkbtn hidden" id="histViewLink" onclick="openErrPanel('hist')">Ver historial de fallos (<span id="histCount">0</span>)</button>
+      <button class="linkbtn hidden" id="histClearLink" onclick="clearHist()">Borrar historial</button>
+    </div>
+    <div class="errlinks">
+      <button class="linkbtn hidden" id="domViewLink" onclick="openErrPanel('dom')">Ver dominadas (<span id="domCount">0</span>)</button>
+      <button class="linkbtn hidden" id="domClearLink" onclick="clearDom()">Reiniciar dominadas</button>
     </div>
     <p class="banknote" id="bankNote"></p>
   </div>
@@ -216,6 +247,9 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
       <div class="qfig hidden" id="qFig" onclick="openLightbox()"><img id="qImg" alt="Figura de la pregunta"><span class="zoomhint">TOCAR PARA AMPLIAR</span></div>
       <div class="opts" id="qOpts"></div>
       <div class="verdict" id="verdict"></div>
+      <div class="swapbar">
+        <button class="swapbtn" id="swapBtn" onclick="swapQ()">⟳ Cambiar por otra pregunta</button>
+      </div>
       <div class="actions">
         <button class="btn ghost" id="btnPrev" onclick="prevQ()">← Anterior</button>
         <button class="btn" id="btnNext" onclick="nextQ()">Siguiente →</button>
@@ -282,20 +316,55 @@ document.getElementById('bankNote').textContent =
 
 let S = null; // sesión
 const STORE = 'pchvi_sesion_v1';
-const ERRSTORE = 'pchvi_errores_v1';
+const ERRSTORE = 'pchvi_errores_v1';   // cola de repaso (se vacía al acertar)
+const HISTSTORE = 'pchvi_historial_v1'; // historial permanente (no se vacía al acertar)
+const DOMSTORE = 'pchvi_dominadas_v1'; // preguntas acertadas en simulacros (se excluyen del Modo A+)
+
+function loadDom(){ try{ const e=JSON.parse(localStorage.getItem(DOMSTORE)); return Array.isArray(e)?e:[]; }catch(x){ return []; } }
+function saveDom(e){ try{ localStorage.setItem(DOMSTORE, JSON.stringify(e)); }catch(x){} }
+function addDom(num){ const e=loadDom(); if(!e.includes(num)){ e.push(num); saveDom(e); } }
+function clearDom(){ if(confirm('¿Reiniciar la lista de dominadas? Los próximos simulacros sin dominadas volverán a incluir todo el banco.')){ try{localStorage.removeItem(DOMSTORE)}catch(x){}; checkErrLog(); } }
 
 function loadErrLog(){ try{ const e=JSON.parse(localStorage.getItem(ERRSTORE)); return Array.isArray(e)?e:[]; }catch(x){ return []; } }
 function saveErrLog(e){ try{ localStorage.setItem(ERRSTORE, JSON.stringify(e)); }catch(x){} }
-function logError(num){ const e=loadErrLog(); if(!e.includes(num)){ e.push(num); saveErrLog(e);} }
+function loadHist(){ try{ const e=JSON.parse(localStorage.getItem(HISTSTORE)); return (e && typeof e==='object' && !Array.isArray(e))?e:{}; }catch(x){ return {}; } }
+function saveHist(e){ try{ localStorage.setItem(HISTSTORE, JSON.stringify(e)); }catch(x){} }
+
+// registrar un fallo: entra a la cola de repaso Y al historial permanente
+function logError(num){
+  const e=loadErrLog(); if(!e.includes(num)){ e.push(num); saveErrLog(e); }
+  const h=loadHist();
+  if(!h[num]) h[num]={n:0,last:0};
+  h[num].n++; h[num].last=Date.now();
+  saveHist(h);
+}
+// quitar solo de la cola de repaso (el historial queda intacto)
 function unlogError(num){ saveErrLog(loadErrLog().filter(n=>n!==num)); }
-function clearErrLog(){ if(confirm('¿Borrar todo el registro de errores acumulado?')){ try{localStorage.removeItem(ERRSTORE)}catch(x){}; checkErrLog(); } }
+// deshacer un fallo mal contado (p. ej. al reemplazar la pregunta): revierte cola e historial
+function undoError(num){
+  saveErrLog(loadErrLog().filter(n=>n!==num));
+  const h=loadHist();
+  if(h[num]){ h[num].n--; if(h[num].n<=0) delete h[num]; saveHist(h); }
+}
+function clearErrLog(){ if(confirm('¿Vaciar la cola de repaso? El historial permanente NO se borra.')){ try{localStorage.removeItem(ERRSTORE)}catch(x){}; checkErrLog(); } }
+function clearHist(){ if(confirm('¿Borrar el historial permanente de errores? Esta acción no se puede deshacer.')){ try{localStorage.removeItem(HISTSTORE)}catch(x){}; checkErrLog(); } }
 
 function checkErrLog(){
   const e=loadErrLog();
+  const hist=loadHist(); const hn=Object.keys(hist).length;
   document.getElementById('errCount').textContent=e.length;
   document.getElementById('repBtn').classList.toggle('hidden', !e.length);
   document.getElementById('errViewLink').classList.toggle('hidden', !e.length);
   document.getElementById('errClearLink').classList.toggle('hidden', !e.length);
+  document.getElementById('histViewLink').classList.toggle('hidden', !hn);
+  document.getElementById('histClearLink').classList.toggle('hidden', !hn);
+  const hc=document.getElementById('histCount'); if(hc) hc.textContent=hn;
+  const dom=loadDom(); const dn=dom.length; const rem=DATA.length-dn;
+  const dc=document.getElementById('domCount'); if(dc) dc.textContent=dn;
+  const dv=document.getElementById('domViewLink'); if(dv) dv.classList.toggle('hidden', !dn);
+  const dcl=document.getElementById('domClearLink'); if(dcl) dcl.classList.toggle('hidden', !dn);
+  const fi=document.getElementById('freshInfo');
+  if(fi) fi.textContent = dn ? ('Dominadas: '+dn+' · quedan '+rem+' por practicar.') : 'Todavía no marcaste ninguna como dominada.';
 }
 
 function errItem(q, chose){
@@ -308,15 +377,62 @@ function errItem(q, chose){
   return d;
 }
 
+function domItem(q){
+  const d=histItemBase(q);
+  const meta=document.createElement('div'); meta.className='hist-meta';
+  meta.innerHTML='<span class="hist-badge done">DOMINADA EN SIMULACRO</span>';
+  d.insertBefore(meta, d.querySelector('.rnum').nextSibling);
+  return d;
+}
+function histItemBase(q){
+  const d=document.createElement('div'); d.className='rev-item';
+  d.innerHTML='<div class="rnum">Nº '+q.num+'</div>';
+  const rq=document.createElement('div'); rq.className='rq'; rq.textContent=q.q; d.appendChild(rq);
+  if(q.imgs.length){ const im=document.createElement('img'); im.src='data:image/jpeg;base64,'+q.imgs[0]; im.onclick=()=>{document.getElementById('lbImg').src=im.src;document.getElementById('lightbox').classList.add('open')}; d.appendChild(im); }
+  const ol=document.createElement('div'); ol.className='hist-opts';
+  q.opts.forEach((o,idx)=>{
+    const row=document.createElement('div'); row.className='hist-opt'+(idx===q.c?' ok':'');
+    const lt=document.createElement('span'); lt.className='hist-opt-l'; lt.textContent=LETTERS[idx]+')';
+    const tx=document.createElement('span'); tx.className='hist-opt-t'; tx.textContent=o;
+    row.appendChild(lt); row.appendChild(tx);
+    if(idx===q.c){ const chk=document.createElement('span'); chk.className='hist-opt-chk'; chk.textContent='✓'; row.appendChild(chk); }
+    ol.appendChild(row);
+  });
+  d.appendChild(ol);
+  return d;
+}
+function histItem(q, times, inQueue){
+  const d=histItemBase(q);
+  const meta=document.createElement('div'); meta.className='hist-meta';
+  const tv = times>1 ? ('Fallada '+times+' veces') : 'Fallada 1 vez';
+  const badge = inQueue ? '<span class="hist-badge queue">EN COLA DE REPASO</span>'
+                        : '<span class="hist-badge done">RESPONDIDA OK LUEGO</span>';
+  meta.innerHTML = '<span class="hist-times">'+tv+'</span>'+badge;
+  d.insertBefore(meta, d.querySelector('.rnum').nextSibling);
+  return d;
+}
 function openErrPanel(kind){
   const body=document.getElementById('errPanelBody'); body.innerHTML='';
   let items=[];
   if(kind==='session' && S){
     document.getElementById('errPanelTitle').textContent='Errores de esta sesión ('+S.fails.length+')';
     items=S.fails.map(f=>errItem(DATA[f.qi], f.chose));
+  }else if(kind==='dom'){
+    const dom=loadDom();
+    const nums=[...dom].reverse();
+    document.getElementById('errPanelTitle').textContent='Dominadas ('+nums.length+')';
+    items=nums.map(num=>{ const q=DATA.find(x=>x.num===num); return q?domItem(q):null; }).filter(Boolean);
+  }else if(kind==='hist'){
+    const hist=loadHist();
+    const queue=loadErrLog();
+    const nums=Object.keys(hist).map(Number).sort((a,b)=>(hist[b].last||0)-(hist[a].last||0));
+    document.getElementById('errPanelTitle').textContent='Historial de fallos ('+nums.length+')';
+    items=nums.map(num=>{ const q=DATA.find(x=>x.num===num); if(!q) return null;
+      const inQueue=queue.includes(num);
+      return histItem(q, hist[num].n, inQueue); }).filter(Boolean);
   }else{
     const e=loadErrLog();
-    document.getElementById('errPanelTitle').textContent='Registro de errores ('+e.length+')';
+    document.getElementById('errPanelTitle').textContent='Cola de repaso ('+e.length+')';
     items=e.map(num=>{ const q=DATA.find(x=>x.num===num); return q?errItem(q,null):null; }).filter(Boolean);
   }
   if(!items.length){ body.innerHTML='<div class="panel-empty">TODAVÍA NO HAY ERRORES REGISTRADOS ✈</div>'; }
@@ -347,6 +463,11 @@ function resumeQuiz(){
   S = s;
   setPlate(S.mode);
   if(!S.state) S.state={}; if(!S.chosen) S.chosen={};
+  if(!S.discarded) S.discarded=[];
+  if(!S.pool){
+    const used=new Set([...S.order, ...S.discarded]);
+    S.pool=[...DATA.keys()].filter(i=>!used.has(i));
+  }
   show('screenQuiz'); renderQ();
 }
 
@@ -361,15 +482,28 @@ function startQuiz(mode){
     order = shuffle([...DATA.keys()].filter(i=>e.includes(DATA[i].num)));
     if(!order.length){ alert('No hay errores registrados todavía.'); return; }
   }
+  else if(mode==='simnew'){
+    const dom=loadDom();
+    const universe=[...DATA.keys()].filter(i=>!dom.includes(DATA[i].num));
+    if(!universe.length){ alert('¡Ya dominaste todo el banco! Reiniciá las dominadas desde el inicio para empezar de nuevo.'); return; }
+    order = shuffle([...universe]).slice(0,100);
+    if(order.length<100) alert('Quedan '+order.length+' preguntas sin dominar. Este simulacro tendrá '+order.length+' preguntas.');
+    const used=new Set(order);
+    const pool=universe.filter(i=>!used.has(i));
+    S = {mode, order, i:0, ok:0, bad:0, answered:false, fails:[], state:{}, chosen:{}, pool, discarded:[]};
+    saveS(); setPlate(mode); show('screenQuiz'); renderQ(); return;
+  }
   else { order = [...DATA.keys()]; }
-  S = {mode, order, i:0, ok:0, bad:0, answered:false, fails:[], state:{}, chosen:{}};
+  const used=new Set(order);
+  const pool=[...DATA.keys()].filter(i=>!used.has(i));
+  S = {mode, order, i:0, ok:0, bad:0, answered:false, fails:[], state:{}, chosen:{}, pool, discarded:[]};
   saveS();
   setPlate(mode);
   show('screenQuiz'); renderQ();
 }
 function setPlate(mode){
-  const t={sim:'SIMULACRO',full:'PRÁCTICA',rep:'REPASO'};
-  const s={sim:'100 PREGUNTAS AL AZAR · PC-HVI',full:'BANCO COMPLETO · PC-HVI',rep:'SOLO ERRORES REGISTRADOS · PC-HVI'};
+  const t={sim:'SIMULACRO',simnew:'SIMULACRO+',full:'PRÁCTICA',rep:'REPASO'};
+  const s={sim:'100 PREGUNTAS AL AZAR · PC-HVI',simnew:'SIN DOMINADAS · PC-HVI',full:'BANCO COMPLETO · PC-HVI',rep:'SOLO ERRORES REGISTRADOS · PC-HVI'};
   document.getElementById('plateTitle').textContent=t[mode]||'PC · HVI';
   document.getElementById('plateSub').textContent=s[mode]||'';
 }
@@ -413,6 +547,23 @@ function toggleGrid(){
 }
 function gotoQ(pos){ S.i=pos; saveS(); renderQ(); }
 
+function swapQ(){
+  if(!S.pool || !S.pool.length){ alert('No quedan preguntas nuevas disponibles en este modo para reemplazar.'); return; }
+  const pos=S.i;
+  const oldQi=S.order[pos];
+  const pick=Math.floor(Math.random()*S.pool.length);
+  const newQi=S.pool.splice(pick,1)[0];
+  const st=S.state[pos];
+  if(st==='ok') S.ok--;
+  else if(st==='bad'){ S.bad--; undoError(DATA[oldQi].num); }
+  delete S.state[pos];
+  delete S.chosen[pos];
+  S.discarded.push(oldQi);
+  S.order[pos]=newQi;
+  saveS();
+  renderQ();
+}
+
 function renderQ(){
   const q = DATA[S.order[S.i]];
   S.answered = false;
@@ -454,6 +605,12 @@ function renderQ(){
   document.getElementById('btnNext').disabled = false;
   document.getElementById('btnNext').textContent = (S.i === S.order.length-1) ? 'Ver resultado' : 'Siguiente →';
   document.getElementById('btnPrev').disabled = (S.i===0);
+  const sw=document.getElementById('swapBtn');
+  if(sw){
+    const none=!S.pool || !S.pool.length;
+    sw.disabled=none;
+    sw.textContent = none ? '⟳ No hay preguntas nuevas disponibles' : '⟳ Cambiar por otra pregunta';
+  }
   buildGrid();
   updateStats();
 }
@@ -471,6 +628,7 @@ function answer(idx, btn){
   S.chosen[S.i] = idx;
   if(hit){ S.ok++; v.className='verdict ok'; v.textContent='✔ Correcto';
     if(S.mode==='rep') unlogError(q.num);
+    if(S.mode==='sim' || S.mode==='simnew') addDom(q.num);
   }
   else{
     S.bad++;
