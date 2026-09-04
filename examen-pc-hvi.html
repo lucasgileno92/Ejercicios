@@ -161,6 +161,9 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 @media (max-width:520px){.grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.cellq{height:38px;font-size:.85rem}}
 .swapbar{padding:0 10px 10px}
 .swapbtn{width:100%;border:1.5px dashed var(--amber);background:transparent;color:var(--amber);font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:.04em;padding:9px;cursor:pointer;border-radius:3px}
+.undobar{padding:0 10px 4px}
+.undobtn{width:100%;border:1.5px solid var(--chart);background:#fff;color:var(--chart);font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.03em;padding:9px;cursor:pointer;border-radius:3px}
+.undobtn:active{background:#eef4f8}
 .swapbtn:active{background:#fdf6ec}
 .swapbtn:disabled{opacity:.4;cursor:default;border-style:solid}
 .review-badge{display:inline-block;font-family:var(--mono);font-size:.56rem;letter-spacing:.08em;background:var(--amber);color:#fff;padding:2px 7px;margin-left:8px;vertical-align:middle}
@@ -247,6 +250,9 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
       <div class="qfig hidden" id="qFig" onclick="openLightbox()"><img id="qImg" alt="Figura de la pregunta"><span class="zoomhint">TOCAR PARA AMPLIAR</span></div>
       <div class="opts" id="qOpts"></div>
       <div class="verdict" id="verdict"></div>
+      <div class="undobar hidden" id="undoBar">
+        <button class="undobtn" id="undoBtn" onclick="undoAnswer()">↺ Me confundí — cambiar mi respuesta</button>
+      </div>
       <div class="swapbar">
         <button class="swapbtn" id="swapBtn" onclick="swapQ()">⟳ Cambiar por otra pregunta</button>
       </div>
@@ -605,6 +611,7 @@ function renderQ(){
   document.getElementById('btnNext').disabled = false;
   document.getElementById('btnNext').textContent = (S.i === S.order.length-1) ? 'Ver resultado' : 'Siguiente →';
   document.getElementById('btnPrev').disabled = (S.i===0);
+  document.getElementById('undoBar').classList.toggle('hidden', !already);
   const sw=document.getElementById('swapBtn');
   if(sw){
     const none=!S.pool || !S.pool.length;
@@ -619,6 +626,11 @@ function answer(idx, btn){
   if(S.answered) return;
   S.answered = true;
   const q = DATA[S.order[S.i]];
+  // snapshot del estado de las listas ANTES de aplicar efectos (para poder deshacer con precisión)
+  const num=q.num;
+  const _h=loadHist();
+  S.snap = S.snap || {};
+  S.snap[S.i] = { inQueue: loadErrLog().includes(num), histN: (_h[num]?_h[num].n:0), inDom: loadDom().includes(num) };
   const buttons = [...document.getElementById('qOpts').children];
   buttons.forEach(b=>b.disabled=true);
   const hit = idx === q.c;
@@ -640,8 +652,35 @@ function answer(idx, btn){
     logError(q.num);
   }
   refreshGridCell(S.i);
+  document.getElementById('undoBar').classList.remove('hidden');
   saveS();
   updateStats();
+}
+
+function undoAnswer(){
+  const pos=S.i;
+  const st=S.state[pos];
+  if(!st) return; // no había respuesta que deshacer
+  const q=DATA[S.order[pos]];
+  const num=q.num;
+  // revertir contadores de la sesión
+  if(st==='ok') S.ok--; else if(st==='bad') S.bad--;
+  S.fails = S.fails.filter(f=>f.qi!==S.order[pos]);
+  // restaurar las listas persistentes al estado previo a esta respuesta
+  const snap = S.snap && S.snap[pos];
+  if(snap){
+    let queue=loadErrLog().filter(n=>n!==num); if(snap.inQueue) queue.push(num); saveErrLog(queue);
+    const hist=loadHist();
+    if(snap.histN>0){ hist[num]=hist[num]||{n:0,last:Date.now()}; hist[num].n=snap.histN; } else { delete hist[num]; }
+    saveHist(hist);
+    let dom=loadDom().filter(n=>n!==num); if(snap.inDom) dom.push(num); saveDom(dom);
+    delete S.snap[pos];
+  }
+  delete S.state[pos];
+  delete S.chosen[pos];
+  S.answered=false;
+  saveS();
+  renderQ(); // re-dibuja la pregunta limpia, con las opciones habilitadas para elegir de nuevo
 }
 
 function updateStats(){
