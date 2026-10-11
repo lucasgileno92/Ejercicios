@@ -95,6 +95,11 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 
 /* ---- Resultados ---- */
 .res{border:2px solid var(--ink);background:var(--paper);margin-top:14px}
+.redo-banner{border:2px solid var(--amber);background:var(--card);margin-top:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.redo-banner-txt{font-family:var(--disp);font-weight:700;font-size:1.15rem;text-transform:uppercase;letter-spacing:.03em;color:var(--amber)}
+.redo-banner-btns{display:flex;gap:10px}
+.redo-go{flex:1;border:2px solid var(--amber);background:var(--amber);color:#fff;font-family:var(--disp);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:1rem;padding:9px;cursor:pointer}
+.redo-skip{border:2px solid var(--rule);background:transparent;color:var(--muted);font-family:var(--disp);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:1rem;padding:9px 16px;cursor:pointer}
 .res-head{border-bottom:2px solid var(--ink);padding:12px 14px}
 .res-head h2{font-family:var(--disp);font-size:1.6rem;font-weight:700;text-transform:uppercase}
 .res-big{display:flex;border-bottom:2px solid var(--ink)}
@@ -152,6 +157,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 .mode-btn.sec .tag{background:var(--chart)}
 .mode-btn.browse{border-color:var(--ink)}
 .mode-btn.browse .tag{background:var(--muted)}
+.mode-btn.figcalc{border-color:var(--amber)}
+.mode-btn.figcalc .tag{background:var(--amber)}
 .sec-head{margin:16px 2px 12px}
 .sec-head h2{font-family:var(--disp);font-size:1.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em}
 .sec-head p{font-size:.85rem;color:var(--muted);margin-top:4px}
@@ -270,6 +277,11 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
         <h2>Examen por secciones</h2>
         <p>Elegí una o varias categorías (Meteorología, Instrumentos, Cálculos, etc.) y se mezclan en un examen con todas sus preguntas.</p>
       </button>
+      <button class="mode-btn figcalc" id="figcalcBtn" onclick="startQuiz('figcalc')">
+        <span class="tag">GRÁFICOS + CÁLCULOS</span>
+        <h2>Imágenes y cálculos · <span id="figcalcCount"></span></h2>
+        <p>Todas las preguntas que traen un gráfico o figura, más las de cálculo matemático, juntas y sin repetir.</p>
+      </button>
       <button class="mode-btn browse" id="browseBtn" onclick="openBrowse()">
         <span class="tag">LIBRE</span>
         <h2>Ver todas las preguntas</h2>
@@ -366,6 +378,13 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 
   <!-- Resultados -->
   <div id="screenRes" class="hidden">
+    <div class="redo-banner hidden" id="redoBanner">
+      <div class="redo-banner-txt" id="redoBannerTxt"></div>
+      <div class="redo-banner-btns">
+        <button class="redo-go" onclick="startRedoNow()">Empezar ahora</button>
+        <button class="redo-skip" onclick="skipRedo()">Omitir</button>
+      </div>
+    </div>
     <div class="res">
       <div class="res-head"><h2 id="resMode">Resultado</h2></div>
       <div class="res-big">
@@ -427,6 +446,10 @@ function toggleTheme(){
 checkResume._pending = true;
 
 document.getElementById('totalQ2').textContent = DATA.length;
+(function(){ const CALC=CATS.indexOf('Cálculos');
+  const n=DATA.filter(q=>(q.imgs&&q.imgs.length)||q.cat===CALC).length;
+  const el=document.getElementById('figcalcCount'); if(el) el.textContent=n+' preguntas';
+})();
 document.getElementById('bankNote').textContent =
   `BANCO: ${DATA.length} PREGUNTAS VÁLIDAS · ${DATA.filter(q=>q.imgs.length).length} CON FIGURA · 4 PREGUNTAS DEFECTUOSAS DE LA PUBLICACIÓN ORIGINAL EXCLUIDAS (Nº 567, 610, 659, 674) · EL PROGRESO SE GUARDA AUTOMÁTICAMENTE EN ESTE NAVEGADOR`;
 
@@ -605,6 +628,10 @@ function startQuiz(mode){
     order = shuffle([...DATA.keys()].filter(i=>hist[DATA[i].num]));
     if(!order.length){ alert('Tu historial de fallos está vacío. Primero fallá algunas preguntas para poder machacarlas.'); return; }
   }
+  else if(mode==='figcalc'){
+    const CALC=CATS.indexOf('Cálculos');
+    order = shuffle([...DATA.keys()].filter(i=>(DATA[i].imgs && DATA[i].imgs.length) || DATA[i].cat===CALC));
+  }
   else if(mode==='simnew'){
     const dom=loadDom();
     const universe=[...DATA.keys()].filter(i=>!dom.includes(DATA[i].num));
@@ -625,8 +652,8 @@ function startQuiz(mode){
   show('screenQuiz'); renderQ();
 }
 function setPlate(mode){
-  const t={sim:'SIMULACRO',simnew:'SIMULACRO+',full:'PRÁCTICA',rep:'REPASO',sec:'SECCIONES',browse:'PREGUNTA',drill:'MACHAQUE'};
-  const s={sim:'100 PREGUNTAS AL AZAR · PC-HVI',simnew:'SIN DOMINADAS · PC-HVI',full:'BANCO COMPLETO · PC-HVI',rep:'SOLO ERRORES REGISTRADOS · PC-HVI',sec:'CATEGORÍAS ELEGIDAS · PC-HVI',browse:'PREGUNTA SUELTA · PC-HVI',drill:'HISTORIAL COMPLETO DE FALLOS · PC-HVI'};
+  const t={sim:'SIMULACRO',simnew:'SIMULACRO+',full:'PRÁCTICA',rep:'REPASO',sec:'SECCIONES',browse:'PREGUNTA',drill:'MACHAQUE',redo:'REPASO',figcalc:'GRÁF. + CÁLC.'};
+  const s={sim:'100 PREGUNTAS AL AZAR · PC-HVI',simnew:'SIN DOMINADAS · PC-HVI',full:'BANCO COMPLETO · PC-HVI',rep:'SOLO ERRORES REGISTRADOS · PC-HVI',sec:'CATEGORÍAS ELEGIDAS · PC-HVI',browse:'PREGUNTA SUELTA · PC-HVI',drill:'HISTORIAL COMPLETO DE FALLOS · PC-HVI',redo:'HASTA ACERTAR TODAS · PC-HVI',figcalc:'IMÁGENES Y CÁLCULOS · PC-HVI'};
   if(mode==='sec' && S && S.cats){
     document.getElementById('plateTitle').textContent='SECCIONES';
     document.getElementById('plateSub').textContent=S.cats.map(ci=>CATS[ci].split(' ')[0].toUpperCase()).join(' · ');
@@ -730,10 +757,17 @@ function renderQ(){
     S.answered=false;
     badge.textContent=`PREGUNTA ${S.i+1} DE ${S.order.length}`;
   }
+  if(S.mode==='redo'){
+    const rem=(S.redoPending||[]).length;
+    badge.innerHTML=`REPASO · VUELTA ${S.redoRound||1} · QUEDAN ${rem}`;
+  }
   document.getElementById('btnNext').disabled = false;
-  document.getElementById('btnNext').textContent = (S.i === S.order.length-1) ? 'Ver resultado' : 'Siguiente →';
+  const lastQ = (S.i === S.order.length-1);
+  document.getElementById('btnNext').textContent = lastQ ? (S.mode==='redo' ? 'Continuar repaso →' : 'Ver resultado') : 'Siguiente →';
   document.getElementById('btnPrev').disabled = (S.i===0);
   document.getElementById('undoBar').classList.toggle('hidden', !already);
+  const swbar=document.querySelector('.swapbar');
+  if(swbar) swbar.style.display = (S.mode==='redo') ? 'none' : '';
   const sw=document.getElementById('swapBtn');
   if(sw){
     const none=!S.pool || !S.pool.length;
@@ -763,7 +797,8 @@ function answer(idx, btn){
   if(hit){ S.ok++; v.className='verdict ok'; v.textContent='✔ Correcto';
     if(S.mode==='rep') unlogError(q.num);
     if(S.mode==='sim' || S.mode==='simnew') addDom(q.num);
-    // modo 'drill': acertar NO quita nada (historial, cola y dominadas quedan intactos)
+    // modo 'drill' y 'redo': acertar NO quita nada de las listas persistentes
+    if(S.mode==='redo' && S.redoPending){ S.redoPending = S.redoPending.filter(n=>n!==q.num); }
   }
   else{
     S.bad++;
@@ -772,7 +807,7 @@ function answer(idx, btn){
     v.className='verdict bad';
     v.textContent=`✘ Incorrecto — la respuesta era ${LETTERS[q.c]})`;
     S.fails.push({qi:S.order[S.i], chose:idx});
-    if(S.mode!=='drill') logError(q.num); // en 'drill' no re-registramos: ya están en el historial
+    if(S.mode!=='drill' && S.mode!=='redo') logError(q.num); // 'drill'/'redo' no re-registran
   }
   refreshGridCell(S.i);
   document.getElementById('undoBar').classList.remove('hidden');
@@ -818,10 +853,45 @@ function updateStats(){
 }
 
 function nextQ(){
-  if(S.i >= S.order.length-1){ finishQuiz(); return; }
+  if(S.i >= S.order.length-1){
+    if(S.mode==='redo'){ endRedoRound(); return; }
+    finishQuiz(); return;
+  }
   S.i++; saveS(); renderQ();
 }
 function prevQ(){ if(S.i>0){ S.i--; saveS(); renderQ(); } }
+
+// Cierre de una tanda de repaso: si quedan pendientes, otra vuelta solo con esas; si no, listo
+function endRedoRound(){
+  const pending=(S.redoPending||[]).slice();
+  if(pending.length){
+    const order=shuffle([...DATA.keys()].filter(i=>pending.includes(DATA[i].num)));
+    S.order=order; S.i=0; S.ok=0; S.bad=0; S.answered=false; S.fails=[]; S.state={}; S.chosen={};
+    S.redoRound=(S.redoRound||1)+1;
+    saveS(); setPlate('redo'); renderQ();
+  } else {
+    finishRedo();
+  }
+}
+function finishRedo(){
+  clearS();
+  const total=(S.redoNums||[]).length;
+  document.getElementById('resMode').textContent='Repaso de errores · Completo';
+  document.getElementById('resPct').textContent='100%';
+  document.getElementById('resAns').textContent=total;
+  document.getElementById('resOk').textContent=total;
+  document.getElementById('resBad').textContent=0;
+  const st=document.getElementById('stamp');
+  st.className='stamp ok';
+  st.innerHTML='¡ERRORES INTERIORIZADOS!<span class="ref">acertaste todas las que habías fallado</span>';
+  S.fails=[];
+  buildReview();
+  document.getElementById('reviewBox').classList.add('hidden');
+  document.getElementById('btnRev').textContent='Ver errores (0)';
+  document.getElementById('btnRev').disabled=true;
+  document.getElementById('redoBanner').classList.add('hidden');
+  show('screenRes');
+}
 
 function finishQuiz(){
   S.fails = S.order.map((qi,pos)=>({qi,pos})).filter(x=>S.state[x.pos]==='bad').map(x=>({qi:x.qi, chose:S.chosen[x.pos]}));
@@ -829,7 +899,7 @@ function finishQuiz(){
   const done = S.ok + S.bad;
   if(!done){ goHome(); return; }
   const pct = Math.round(100*S.ok/done);
-  document.getElementById('resMode').textContent = ({sim:'Simulacro',simnew:'Simulacro+',full:'Práctica',rep:'Repaso',drill:'Machaque',sec:'Secciones',browse:'Pregunta'}[S.mode]||'')+' · Resultado';
+  document.getElementById('resMode').textContent = ({sim:'Simulacro',simnew:'Simulacro+',full:'Práctica',rep:'Repaso',drill:'Machaque',sec:'Secciones',browse:'Pregunta',figcalc:'Imágenes y cálculos'}[S.mode]||'')+' · Resultado';
   document.getElementById('resPct').textContent = pct+'%';
   document.getElementById('resAns').textContent = done + (S.mode==='full' ? ' de '+S.order.length : '');
   document.getElementById('resOk').textContent = S.ok;
@@ -843,6 +913,40 @@ function finishQuiz(){
   document.getElementById('btnRev').textContent='Ver errores ('+S.bad+')';
   document.getElementById('btnRev').disabled = !S.bad;
   show('screenRes');
+  // Ronda de repaso automática: si el examen (no la propia ronda) dejó errores, machacar hasta acertar todas
+  const redoBanner=document.getElementById('redoBanner');
+  if(redoTimer){ clearTimeout(redoTimer); redoTimer=null; }
+  if(S.mode!=='redo' && S.fails.length){
+    const nums=[...new Set(S.fails.map(f=>DATA[f.qi].num))];
+    pendingRedo=nums;
+    document.getElementById('redoBannerTxt').textContent='Repaso de tus '+nums.length+' errores — empieza en 2 s…';
+    redoBanner.classList.remove('hidden');
+    redoTimer=setTimeout(()=>startRedo(nums), 2000);
+  } else {
+    redoBanner.classList.add('hidden');
+    pendingRedo=null;
+  }
+}
+
+let pendingRedo=null, redoTimer=null;
+function skipRedo(){
+  if(redoTimer){ clearTimeout(redoTimer); redoTimer=null; }
+  pendingRedo=null;
+  document.getElementById('redoBanner').classList.add('hidden');
+}
+function startRedoNow(){
+  if(redoTimer){ clearTimeout(redoTimer); redoTimer=null; }
+  if(pendingRedo && pendingRedo.length) startRedo(pendingRedo);
+}
+// Inicia (o reinicia) una ronda de repaso en bucle con las preguntas dadas (por número)
+function startRedo(nums){
+  document.getElementById('redoBanner').classList.add('hidden');
+  const order = shuffle([...DATA.keys()].filter(i=>nums.includes(DATA[i].num)));
+  if(!order.length){ goHome(); return; }
+  const pool=[];
+  S = {mode:'redo', order, i:0, ok:0, bad:0, answered:false, fails:[], state:{}, chosen:{}, pool, discarded:[],
+       redoNums:[...nums], redoPending:[...nums], redoRound:1};
+  saveS(); setPlate('redo'); show('screenQuiz'); renderQ();
 }
 
 function buildReview(){
@@ -958,6 +1062,9 @@ function startSingle(idx){
 }
 
 function goHome(){
+  if(redoTimer){ clearTimeout(redoTimer); redoTimer=null; }
+  pendingRedo=null;
+  const rb=document.getElementById('redoBanner'); if(rb) rb.classList.add('hidden');
   S=null;
   document.getElementById('plateTitle').textContent='PC · HVI';
   document.getElementById('plateSub').textContent='BANCO ANAC · RES. 306/2014';
