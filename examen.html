@@ -159,6 +159,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 .mode-btn.browse .tag{background:var(--muted)}
 .mode-btn.figcalc{border-color:var(--amber)}
 .mode-btn.figcalc .tag{background:var(--amber)}
+.mode-btn.search{border-color:var(--ok)}
+.mode-btn.search .tag{background:var(--ok)}
 .sec-head{margin:16px 2px 12px}
 .sec-head h2{font-family:var(--disp);font-size:1.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em}
 .sec-head p{font-size:.85rem;color:var(--muted);margin-top:4px}
@@ -172,6 +174,29 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 .sec-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px;padding-bottom:20px}
 .sec-count{font-family:var(--mono);font-size:.72rem;color:var(--chart);letter-spacing:.04em}
 .sec-btns{display:flex;gap:10px}
+.search-bar{display:flex;gap:8px;margin-bottom:8px;position:sticky;top:0;background:var(--paper);padding:2px 0;z-index:2}
+.search-bar input{flex:1;border:2px solid var(--ok);padding:11px 13px;font-family:var(--body);font-size:1rem;border-radius:4px;background:var(--card);color:var(--ink)}
+.search-bar input:focus{outline:none;border-color:var(--ok)}
+.search-clear{border:1.5px solid var(--rule);background:var(--card);color:var(--muted);font-size:1rem;width:44px;border-radius:4px;cursor:pointer;flex:0 0 auto}
+.search-count{font-family:var(--mono);font-size:.62rem;color:var(--muted);letter-spacing:.05em;margin-bottom:8px}
+.search-list{display:grid;gap:7px;max-height:64vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:2px}
+.sq{border:1.5px solid var(--rule);background:var(--card);border-radius:5px;overflow:hidden}
+.sq-head{display:flex;align-items:flex-start;gap:9px;padding:11px;cursor:pointer;width:100%;border:none;background:transparent;text-align:left;font-family:var(--body);color:var(--ink);font-size:.9rem;line-height:1.4}
+.sq-head .snum{font-family:var(--mono);font-weight:600;font-size:.7rem;color:var(--muted);flex:0 0 auto;margin-top:1px}
+.sq-head .stxt{flex:1}
+.sq-head .schev{font-family:var(--mono);color:var(--ok);flex:0 0 auto;font-size:.8rem;margin-top:1px}
+.sq.open{border-color:var(--ok)}
+.sq-body{padding:0 11px 12px;display:none}
+.sq.open .sq-body{display:block}
+.sq-body img{max-width:100%;border:1px solid var(--rule);margin:4px 0 8px;cursor:zoom-in}
+.sq-ans{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--rule);background:var(--card);padding:7px 9px;font-size:.84rem;line-height:1.4;border-radius:3px;margin-top:5px}
+.sq-ans.ok{border-color:var(--ok);background:var(--ok-bg);font-weight:600}
+.sq-ans .sl{font-family:var(--mono);font-weight:600;font-size:.76rem;color:var(--muted);flex:0 0 auto}
+.sq-ans.ok .sl{color:var(--ok)}
+.sq-ans .st{flex:1}
+.sq-ans .sck{color:var(--ok);font-weight:700;flex:0 0 auto}
+.search-hint,.search-empty{font-family:var(--mono);font-size:.72rem;color:var(--muted);text-align:center;padding:28px 14px;line-height:1.6}
+.sq-head mark{background:var(--amber);color:#fff;border-radius:2px;padding:0 1px}
 .browse-bar{display:flex;gap:8px;margin-bottom:10px}
 .browse-bar input{flex:1;border:1.5px solid var(--rule);padding:9px 11px;font-family:var(--body);font-size:.88rem;border-radius:4px;background:var(--card);color:var(--ink)}
 .browse-bar select{border:1.5px solid var(--rule);padding:9px;font-family:var(--body);font-size:.82rem;border-radius:4px;background:var(--card);max-width:44%;color:var(--ink)}
@@ -282,6 +307,11 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
         <h2>Imágenes y cálculos · <span id="figcalcCount"></span></h2>
         <p>Todas las preguntas que traen un gráfico o figura, más las de cálculo matemático, agrupadas por tema.</p>
       </button>
+      <button class="mode-btn search" id="searchBtn" onclick="openSearch()">
+        <span class="tag">BUSCADOR</span>
+        <h2>Buscar pregunta y respuesta</h2>
+        <p>Escribí y van saltando las preguntas que coinciden. Tocá una para ver al instante la respuesta correcta.</p>
+      </button>
       <button class="mode-btn browse" id="browseBtn" onclick="openBrowse()">
         <span class="tag">LIBRE</span>
         <h2>Ver todas las preguntas</h2>
@@ -331,6 +361,23 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
       <p>Elegí un tema para practicarlo, o tomá todas juntas. Tocá una opción y arranca.</p>
     </div>
     <div class="cat-list" id="figcalcList"></div>
+    <div class="sec-actions">
+      <button class="btn ghost" onclick="goHome()">← Volver</button>
+    </div>
+  </div>
+
+  <!-- Buscador de preguntas con respuesta -->
+  <div id="screenSearch" class="hidden">
+    <div class="sec-head">
+      <h2>Buscar pregunta</h2>
+      <p>Escribí parte de la pregunta o su número. Tocá un resultado para ver la respuesta correcta.</p>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Escribí para buscar…" autocomplete="off" oninput="renderSearch()">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Borrar">✕</button>
+    </div>
+    <div class="search-count" id="searchCount"></div>
+    <div class="search-list" id="searchList"></div>
     <div class="sec-actions">
       <button class="btn ghost" onclick="goHome()">← Volver</button>
     </div>
@@ -682,7 +729,7 @@ function setPlate(mode){
 }
 
 function show(id){
-  for(const s of ['screenHome','screenQuiz','screenRes','screenSections','screenBrowse','screenFigcalc'])
+  for(const s of ['screenHome','screenQuiz','screenRes','screenSections','screenBrowse','screenFigcalc','screenSearch'])
     document.getElementById(s).classList.toggle('hidden', s!==id);
   window.scrollTo({top:0});
 }
@@ -1071,6 +1118,102 @@ function startSections(){
 }
 
 // ---------- Explorador de todas las preguntas ----------
+// ---------- Buscador de preguntas con respuesta ----------
+function sNorm(s){ return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+function openSearch(){
+  document.getElementById('searchInput').value='';
+  renderSearch();
+  show('screenSearch');
+  setTimeout(()=>{ const el=document.getElementById('searchInput'); if(el) el.focus(); },60);
+}
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  renderSearch();
+  const el=document.getElementById('searchInput'); if(el) el.focus();
+}
+function renderSearch(){
+  const raw=document.getElementById('searchInput').value.trim();
+  const q=sNorm(raw);
+  const list=document.getElementById('searchList');
+  const cnt=document.getElementById('searchCount');
+  list.innerHTML='';
+  if(!q){
+    cnt.textContent='';
+    list.innerHTML='<div class="search-hint">Empezá a escribir para buscar entre las '+DATA.length+' preguntas.<br>También podés buscar por número (ej. 65).</div>';
+    return;
+  }
+  // tokens: todas las palabras deben aparecer (en cualquier orden)
+  const toks=q.split(/\s+/).filter(Boolean);
+  const matches=[];
+  DATA.forEach((item,idx)=>{
+    const hay=sNorm(String(item.num)+' '+item.q+' '+item.opts.join(' '));
+    if(toks.every(t=>hay.includes(t))) matches.push(idx);
+  });
+  cnt.textContent = matches.length+' resultado'+(matches.length===1?'':'s');
+  if(!matches.length){ list.innerHTML='<div class="search-empty">NINGUNA PREGUNTA COINCIDE CON «'+raw+'» ✈</div>'; return; }
+  matches.slice(0,80).forEach(idx=>{
+    const item=DATA[idx];
+    const sq=document.createElement('div'); sq.className='sq';
+    const head=document.createElement('button'); head.className='sq-head';
+    const num=document.createElement('span'); num.className='snum'; num.textContent='Nº '+item.num;
+    const tx=document.createElement('span'); tx.className='stxt';
+    tx.innerHTML=hilite(item.q, toks);
+    const chev=document.createElement('span'); chev.className='schev'; chev.textContent='▸';
+    head.appendChild(num); head.appendChild(tx); head.appendChild(chev);
+    const body=document.createElement('div'); body.className='sq-body';
+    head.onclick=()=>{
+      const open=sq.classList.toggle('open');
+      chev.textContent = open ? '▾' : '▸';
+      if(open && !body.dataset.built){ buildSearchBody(body, item); body.dataset.built='1'; }
+    };
+    sq.appendChild(head); sq.appendChild(body);
+    list.appendChild(sq);
+  });
+  if(matches.length>80){
+    const more=document.createElement('div'); more.className='search-hint';
+    more.textContent='Mostrando 80 de '+matches.length+'. Afiná la búsqueda para ver menos.';
+    list.appendChild(more);
+  }
+}
+function buildSearchBody(body, q){
+  if(q.imgs && q.imgs.length){
+    const im=document.createElement('img'); im.src='data:image/jpeg;base64,'+q.imgs[0];
+    im.onclick=()=>{ document.getElementById('lbImg').src=im.src; document.getElementById('lightbox').classList.add('open'); };
+    body.appendChild(im);
+  }
+  q.opts.forEach((o,i)=>{
+    const row=document.createElement('div'); row.className='sq-ans'+(i===q.c?' ok':'');
+    const l=document.createElement('span'); l.className='sl'; l.textContent=LETTERS[i]+')';
+    const t=document.createElement('span'); t.className='st'; t.textContent=o;
+    row.appendChild(l); row.appendChild(t);
+    if(i===q.c){ const ck=document.createElement('span'); ck.className='sck'; ck.textContent='✓'; row.appendChild(ck); }
+    body.appendChild(row);
+  });
+}
+function hilite(text, toks){
+  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  // normalizar carácter por carácter manteniendo correspondencia 1:1 con el texto original
+  const normChars=[...text].map(ch=>ch.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase());
+  const normFull=normChars.join('');
+  // normFull puede ser más largo si un char se descompone en varios base (raro en español); para seguridad construimos un mapa índice→índice original
+  const map=[]; normChars.forEach((nc,oi)=>{ for(let k=0;k<Math.max(nc.length,1);k++) map.push(oi); });
+  const marks=[];
+  toks.forEach(t=>{ if(!t) return; let from=0,p; while((p=normFull.indexOf(t,from))!==-1){ marks.push([p,p+t.length]); from=p+t.length; } });
+  if(!marks.length) return esc(text);
+  marks.sort((a,b)=>a[0]-b[0]);
+  const merged=[]; for(const m of marks){ if(merged.length&&m[0]<=merged[merged.length-1][1]) merged[merged.length-1][1]=Math.max(merged[merged.length-1][1],m[1]); else merged.push([...m]); }
+  const chars=[...text];
+  let out='',last=0;
+  for(const [a,b] of merged){
+    const oa=map[a], ob=(b<map.length?map[b]:chars.length);
+    if(oa<last) continue;
+    out+=esc(chars.slice(last,oa).join(''))+'<mark>'+esc(chars.slice(oa,ob).join(''))+'</mark>';
+    last=ob;
+  }
+  out+=esc(chars.slice(last).join(''));
+  return out;
+}
+
 function openBrowse(){
   const sel=document.getElementById('browseCat');
   sel.innerHTML='<option value="-1">Todas las categorías</option>'+CATS.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('');
