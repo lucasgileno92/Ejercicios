@@ -1126,7 +1126,7 @@ function drawAdfCourse({C0, D, tipo, Hatk, fix, sentido}){
   const capR = inb ? norm(D + 180) : norm(D);
   const curR = inb ? norm(C0 + 180) : norm(C0);
   const P0 = pol(curR, inb ? 205 : 62);
-  const L1 = tipo === "frente" ? 72 : tipo === "cuadrante" ? 118 : 0;
+  const L1 = inb ? (tipo === "frente" ? 72 : tipo === "cuadrante" ? 118 : 0) : 0;  // tramo sobre el radial actual: solo en entrada (en salida la aguja queda en la cola)
   const Pa = L1 > 0 ? fly(P0[0], P0[1], C0, [{str:L1}]) : {x:P0[0], y:P0[1]};
   let ip = null;
   const t = hitRay(Pa.x, Pa.y, Hatk, capR);
@@ -1182,26 +1182,42 @@ function genAdfCourse(st, tipo, sentido){
 
   const clasif = `Δ = |${desTxt} − ${curTxt}| = <b>${delta}°</b>`;
   const closing = inb ? `e ingresá al ${fix}` : `y alejate por el ${desTxt}`;
+  const needle = inb ? "la cabeza de la aguja" : "la cola de la aguja";
+  const courseRef = inb ? "del curso" : `del ${desTxt}`;
   let steps;
   if(tipo === "directo"){
     steps = [
       `${clasif} → <b>≤ 70°</b>: <b>directo</b>.`,
       `Atacá con <b>90°</b>: virá por <span class="hd">${t0.dir}</span> al rumbo <b>${fmtH(Hatk)}</b> (perpendicular al ${desTxt}).`,
-      `Cuando la aguja del ADF quede a <b>~10°</b> del curso, virá por <span class="hd">${tF.dir}</span> al rumbo <b>${fmtH(D)}</b> ${closing}.`
+      `Cuando <b>${needle}</b> quede a <b>~10°</b> ${courseRef}, virá por <span class="hd">${tF.dir}</span> al rumbo <b>${fmtH(D)}</b> ${closing}.`
     ];
-  } else if(tipo === "frente"){
-    steps = [
-      `${clasif} → <b>70°–90°</b>: <b>cambio de frente</b>.`,
-      `Mantené <b>rumbo radial</b> (rumbo <b>${fmtH(C0)}</b>) durante <b>1 minuto</b>.`,
-      `Después atacá con <b>90°</b>: virá al rumbo <b>${fmtH(Hatk)}</b> (perpendicular al ${desTxt}).`,
-      `A <b>~10°</b> del curso, virá por <span class="hd">${tF.dir}</span> al rumbo <b>${fmtH(D)}</b> ${closing}.`
-    ];
+  } else if(inb){
+    // ENTRADA al curso — doctrina del curso: rumbo radial (hacia/pasando la estación) y después ataque de 90°
+    if(tipo === "frente"){
+      steps = [
+        `${clasif} → <b>70°–90°</b>: <b>cambio de frente</b>.`,
+        `Mantené <b>rumbo radial</b> (rumbo <b>${fmtH(C0)}</b>) durante <b>1 minuto</b>.`,
+        `Después atacá con <b>90°</b>: virá al rumbo <b>${fmtH(Hatk)}</b> (perpendicular al ${desTxt}).`,
+        `A <b>~10°</b> del curso, virá por <span class="hd">${tF.dir}</span> al rumbo <b>${fmtH(D)}</b> ${closing}.`
+      ];
+    } else {
+      steps = [
+        `${clasif} → <b>&gt; 90°</b>: <b>cambio de cuadrante</b>.`,
+        `Mantené <b>rumbo radial</b> (rumbo <b>${fmtH(C0)}</b>) hasta el <b>cambio de cuadrante</b> (al pasar la estación, la cabeza de la aguja cruza los 90° del morro), y <b>1 minuto más</b>.`,
+        `Después atacá con <b>90°</b>: virá al rumbo <b>${fmtH(Hatk)}</b> (perpendicular al ${desTxt}).`,
+        `A <b>~10°</b> del curso, virá por <span class="hd">${tF.dir}</span> al rumbo <b>${fmtH(D)}</b> ${closing}.`
+      ];
+    }
   } else {
+    // SALIDA (alejamiento) — en alejamiento la aguja queda en la COLA; no hay fase de "mantener radial"
+    const nota = tipo === "cuadrante"
+      ? `Como Δ &gt; 90°, el ${desTxt} queda por detrás del través: la intercepción te lleva a cruzar cerca de la estación.`
+      : `El viraje al ataque es amplio porque Δ está entre 70° y 90°.`;
     steps = [
-      `${clasif} → <b>&gt; 90°</b>: <b>cambio de cuadrante</b>.`,
-      `Mantené <b>rumbo radial</b> (rumbo <b>${fmtH(C0)}</b>) hasta el <b>cambio de cuadrante</b> (la aguja del ADF pasa a 90° del morro), y <b>1 minuto más</b>.`,
-      `Después atacá con <b>90°</b>: virá al rumbo <b>${fmtH(Hatk)}</b> (perpendicular al ${desTxt}).`,
-      `A <b>~10°</b> del curso, virá por <span class="hd">${tF.dir}</span> al rumbo <b>${fmtH(D)}</b> ${closing}.`
+      `${clasif} → <b>${tipo === "frente" ? "70°–90°: cambio de frente" : "&gt; 90°: cambio de cuadrante"}</b>.`,
+      `En <b>alejamiento</b> la referencia es la <b>cola de la aguja</b> (marca tu QDR actual). Mantener el radial actual no sirve: volando recto la aguja queda fija en la cola y nunca cambia.`,
+      `Virá por <span class="hd">${t0.dir}</span> y atacá con <b>90°</b> al rumbo <b>${fmtH(Hatk)}</b> (perpendicular al ${desTxt}). ${nota}`,
+      `Cuando la <b>cola</b> llegue a <b>~10°</b> del <b>${desTxt}</b>, virá por <span class="hd">${tF.dir}</span> al rumbo <b>${fmtH(D)}</b> ${closing}.`
     ];
   }
   const sol = { answer:`${inb?"Entrada":"Salida"} <span class="mono">${ADF_LABEL[tipo]}</span> (Δ = ${delta}°) · ataque rumbo <span class="mono">${fmtH(Hatk)}</span>`, steps };
