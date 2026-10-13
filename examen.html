@@ -197,6 +197,13 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
 .sq-ans .sck{color:var(--ok);font-weight:700;flex:0 0 auto}
 .search-hint,.search-empty{font-family:var(--mono);font-size:.72rem;color:var(--muted);text-align:center;padding:28px 14px;line-height:1.6}
 .sq-head mark{background:var(--amber);color:#fff;border-radius:2px;padding:0 1px}
+.browse-shuffle{display:flex;align-items:center;gap:9px;margin-bottom:10px;cursor:pointer;font-family:var(--body);font-size:.85rem;color:var(--ink);user-select:none}
+.browse-shuffle input{position:absolute;opacity:0;width:0;height:0}
+.browse-shuffle .bs-box{width:22px;height:22px;border:2px solid var(--rule);border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:700;color:transparent;flex:0 0 auto}
+.browse-shuffle input:checked + .bs-box{background:var(--chart);border-color:var(--chart);color:#fff}
+.browse-shuffle .bs-txt{font-weight:600}
+.bs-reshuffle{margin-left:auto;border:1.5px solid var(--chart);background:transparent;color:var(--chart);font-family:var(--mono);font-size:.64rem;font-weight:600;letter-spacing:.03em;padding:5px 9px;border-radius:4px;cursor:pointer;display:none}
+.bs-reshuffle.on{display:inline-block}
 .browse-bar{display:flex;gap:8px;margin-bottom:10px}
 .browse-bar input{flex:1;border:1.5px solid var(--rule);padding:9px 11px;font-family:var(--body);font-size:.88rem;border-radius:4px;background:var(--card);color:var(--ink)}
 .browse-bar select{border:1.5px solid var(--rule);padding:9px;font-family:var(--body);font-size:.82rem;border-radius:4px;background:var(--card);max-width:44%;color:var(--ink)}
@@ -393,6 +400,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--body);line-heigh
       <input type="text" id="browseSearch" placeholder="Buscar texto o Nº…" oninput="renderBrowse()">
       <select id="browseCat" onchange="renderBrowse()"></select>
     </div>
+    <label class="browse-shuffle">
+      <input type="checkbox" id="browseShuffle" onchange="toggleBrowseShuffle()">
+      <span class="bs-box">✓</span>
+      <span class="bs-txt">Orden al azar</span>
+      <button class="bs-reshuffle" id="bsReshuffle" onclick="reshuffleBrowse(event)">↻ Mezclar de nuevo</button>
+    </label>
     <div class="browse-list" id="browseList"></div>
     <div class="sec-actions">
       <button class="btn ghost" onclick="goHome()">← Volver</button>
@@ -1214,6 +1227,7 @@ function hilite(text, toks){
   return out;
 }
 
+let browseOrder=null; // null = orden original; array = orden mezclado persistente
 function openBrowse(){
   const sel=document.getElementById('browseCat');
   sel.innerHTML='<option value="-1">Todas las categorías</option>'+CATS.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join('');
@@ -1221,13 +1235,25 @@ function openBrowse(){
   renderBrowse();
   show('screenBrowse');
 }
+function toggleBrowseShuffle(){
+  const on=document.getElementById('browseShuffle').checked;
+  browseOrder = on ? shuffle([...DATA.keys()]) : null;
+  document.getElementById('bsReshuffle').classList.toggle('on', on);
+  renderBrowse();
+}
+function reshuffleBrowse(ev){
+  if(ev) ev.preventDefault();
+  browseOrder = shuffle([...DATA.keys()]);
+  renderBrowse();
+}
 function renderBrowse(){
   const q=document.getElementById('browseSearch').value.trim().toLowerCase();
   const ci=parseInt(document.getElementById('browseCat').value);
   const list=document.getElementById('browseList'); list.innerHTML='';
-  const done=loadDom(); // solo para color informativo si querés; usamos estado por num vía historial no aplica aquí
+  const seq = browseOrder || [...DATA.keys()];
   let shown=0;
-  DATA.forEach((item,idx)=>{
+  seq.forEach(idx=>{
+    const item=DATA[idx];
     if(ci>=0 && item.cat!==ci) return;
     if(q){
       const hay=(String(item.num)+' '+item.q).toLowerCase();
